@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 import multer from "multer";
+import { ZodError, type ZodSchema } from "zod";
 import { prisma } from "../../../lib/prisma.js";
 import { logger } from "../../../lib/logger.js";
 import { tempStorage, DEFAULT_TTL_MS } from "../../../lib/storage.js";
@@ -25,6 +26,10 @@ export interface ToolFileInput {
   ext: string;
   mimeType: string;
   size: number;
+  // Raw client filename — UNTRUSTED. Never use as a path; sanitize first
+  // (see file-shared safeEntryName). Present so tools like zip-create can
+  // preserve human-readable entry names.
+  originalName: string;
 }
 
 export interface ToolProcessResult {
@@ -49,7 +54,13 @@ function toInputs(
     const ext = extOf(f.originalname);
     if (!allowedExts.has(ext)) throw badRequest(`Unsupported file type: .${ext || "unknown"}`);
     if (f.size <= 0 || f.size > maxBytes) throw badRequest("File size out of range.");
-    return { buffer: f.buffer, ext, mimeType: f.mimetype, size: f.size };
+    return {
+      buffer: f.buffer,
+      ext,
+      mimeType: f.mimetype,
+      size: f.size,
+      originalName: f.originalname ?? "",
+    };
   });
 }
 
@@ -58,9 +69,17 @@ export interface FileToolConfig {
   maxFiles: number;
   maxBytes?: number;
   allowedExts: string[];
+  // Optional zod schema for multipart text fields (e.g. split `ranges`).
+  // Parsed body is passed to `process` via ctx; failures → 400 like elsewhere.
+  bodySchema?: ZodSchema;
   // Pure transform: inputs → output bytes. No storage/DB access inside;
   // the helper owns temp ids, storage, GeneratedFile rows and the response.
-  process: (inputs: ToolFileInput[], jobId: string) => Promise<ToolProcessResult>;
+  process: (inputs: ToolFileInput[], ctx: ExecuteContext) => Promise<ToolProcessResult>;
+}
+
+export interface ExecuteContext {
+  jobId: string;
+  body: unknown;
 }
 
 export interface FileToolResult {
@@ -84,7 +103,26 @@ export function createFileToolHandler(config: FileToolConfig) {
       const files = (req as Request & { files?: Express.Multer.File[] }).files;
       const inputs = toInputs(files, allowed, maxBytes);
       const jobId = randomUUID();
-      const result = await config.process(inputs, jobId);
+      let body: unknown = req.body;
+      if (config.bodySchema) {
+        try {
+          body = config.bodySchema.parse(req.body);
+        } catch (err) {
+          if (err instanceof ZodError) {
+            const appErr = new Error("Invalid input.") as Error & {
+              status?: number;
+              code?: string;
+              details?: unknown;
+            };
+            appErr.status = 400;
+            appErr.code = "VALIDATION_ERROR";
+            appErr.details = err.flatten();
+            throw appErr;
+          }
+          throw err;
+        }
+      }
+      const result = await config.process(inputs, { jobId, body });
       const stored = await tempStorage.put(result.buffer, {
         ext: result.ext,
         mimeType: result.mimeType,

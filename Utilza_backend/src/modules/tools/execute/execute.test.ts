@@ -19,8 +19,8 @@ function stubApp() {
       toolSlug: "stub-concat",
       maxFiles: 3,
       allowedExts: ["txt"],
-      process: (inputs, jobId) => {
-        if (!jobId) throw new Error("jobId missing");
+      process: (inputs, ctx) => {
+        if (!ctx.jobId) throw new Error("jobId missing");
         const buffer = Buffer.concat(inputs.map((i) => i.buffer));
         return Promise.resolve({ buffer, ext: "txt", mimeType: "text/plain" });
       },

@@ -32,10 +32,15 @@ describe("tools registry (DB fallback)", () => {
   });
 
   it("exposes new-architecture classification on every tool", async () => {
-    const res = await request(app).get("/api/v1/tools?limit=50");
-    expect(res.status).toBe(200);
-    const items = res.body.data.items as Array<Record<string, unknown>>;
-    expect(items.length).toBeGreaterThanOrEqual(10);
+    const first = await request(app).get("/api/v1/tools?limit=50");
+    expect(first.status).toBe(200);
+    const second = await request(app).get("/api/v1/tools?limit=50&page=2");
+    expect(second.status).toBe(200);
+    const items = [
+      ...(first.body.data.items as Array<Record<string, unknown>>),
+      ...(second.body.data.items as Array<Record<string, unknown>>),
+    ];
+    expect(items.length).toBe(first.body.data.total);
     for (const item of items) {
       expect(["frontend", "backend"]).toContain(item["implementation"]);
       expect(item["platforms"]).toEqual(expect.arrayContaining(["web", "mobile"]));
@@ -43,8 +48,76 @@ describe("tools registry (DB fallback)", () => {
       expect(typeof item["requiresAuth"]).toBe("boolean");
       expect(typeof item["supportsOffline"]).toBe("boolean");
     }
-    // All 10 MVP tools are frontend tools (06 §26 — no backend endpoint).
-    expect(items.every((i) => i["implementation"] === "frontend")).toBe(true);
+    // MVP frontend tools stay frontend (06 §26 — no backend endpoint).
+    const backendSlugs = [
+      "pdf-merge",
+      "pdf-split",
+      "pdf-compress",
+      "pdf-to-word",
+      "image-compress",
+      "image-convert",
+      "word-to-pdf",
+      "image-to-pdf",
+      "pdf-rotate",
+      "pdf-page-delete",
+      "pdf-text",
+      "pdf-metadata",
+      "pdf-watermark",
+      "pdf-number-pages",
+      "pdf-header-footer",
+      "pdf-reorder",
+      "pdf-duplicate",
+      "pdf-flatten",
+      "pdf-search",
+      "word-to-txt",
+      "word-to-html",
+      "word-to-markdown",
+      "txt-to-pdf",
+      "excel-to-csv",
+      "excel-to-json",
+      "csv-to-json",
+      "csv-to-excel",
+      "json-to-csv",
+      "markdown-to-html",
+      "document-metadata",
+      "image-resize",
+      "image-crop",
+      "image-rotate",
+      "image-flip",
+      "zip-create",
+      "zip-extract",
+      "file-hash",
+      "base64-encode",
+      "base64-decode",
+      "image-grayscale",
+      "image-blur",
+      "image-sharpen",
+      "image-brightness",
+      "image-contrast",
+      "file-metadata",
+      "file-type",
+      "image-pixelate",
+      "image-watermark",
+      "image-metadata",
+      "file-merge",
+      "file-split",
+      "file-compress",
+      "image-exif-remove",
+      "image-favicon",
+      "image-montage",
+      "pdf-redact",
+      "image-social",
+      "image-passport",
+    ];
+    const frontend = items.filter((i) => !backendSlugs.includes(i["slug"] as string));
+    expect(frontend.every((i) => i["implementation"] === "frontend")).toBe(true);
+    // Backend executors (TASK-104+).
+    for (const slug of backendSlugs) {
+      const tool = items.find((i) => i["slug"] === slug);
+      expect(tool?.["implementation"]).toBe("backend");
+      expect(tool?.["requiresFile"]).toBe(true);
+      expect(tool?.["supportsOffline"]).toBe(false);
+    }
   });
 
   it("404 unknown tool with stable code", async () => {

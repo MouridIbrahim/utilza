@@ -165,6 +165,160 @@ process → temp storage → `GeneratedFile` row → result. Every
 Fetch the bytes via `downloadUrl` (see Files). Outputs expire (default TTL 1h);
 user filenames are never used as paths or echoed.
 
+Shipped executors:
+
+- `POST /api/v1/tools/pdf/merge` — multipart `files` (2–20 PDFs, ≤10 MB each)
+  → merged PDF download. `400` for <2 files, non-PDF bytes, bad extension.
+- `POST /api/v1/tools/pdf/split` — multipart `files` (exactly 1 PDF) +
+  text field `ranges` (e.g. `"1-3,5"`, 1-based) → single PDF with those pages.
+  `400` for missing/bad ranges, out-of-range pages, non-PDF bytes. Burst to
+  many PDFs arrives with ZIP support (Wave 2); until then this also covers
+  page extraction.
+- `POST /api/v1/tools/pdf/compress` — multipart `files` (exactly 1 PDF) →
+  optimized PDF (metadata stripped, object streams). Optimizer level only:
+  no image downsampling. `400` for non-PDF bytes.
+- `POST /api/v1/tools/pdf/to-word` — multipart `files` (exactly 1 PDF, ≤200
+  pages) → `.docx` with extracted text (paragraphs per page). Text-extraction
+  level: layout fidelity not preserved. `400` for non-PDF bytes and for
+  scanned image-only PDFs with no text layer.
+- `POST /api/v1/tools/image/compress` — multipart `files` (exactly 1 image:
+  png/jpg/webp) + optional text field `quality` (1–100, default 80) →
+  re-encoded image, same format, metadata stripped. No resizing. `400` for
+  non-image bytes or bad quality.
+- `POST /api/v1/tools/image/convert` — multipart `files` (exactly 1 image) +
+  required text field `format` (`png|jpg|webp`) → converted image at high
+  quality, metadata stripped. `400` for bad format or non-image bytes.
+- `POST /api/v1/tools/document/to-pdf` — multipart `files` (exactly 1 `.docx`,
+  ≤2000 paragraphs) → PDF with re-rendered text (word-wrapped, Latin scripts
+  only). Text-level conversion: tables/images/columns not preserved. `400`
+  for non-docx files or documents with no text.
+- `POST /api/v1/tools/pdf/from-image` — multipart `files` (1–10 PNG/JPG) →
+  multi-page PDF, one page per image fitted to A4 (never upscaled). Serves
+  catalog "JPG to PDF" + "PNG to PDF".
+- `POST /api/v1/tools/pdf/rotate` — multipart `files` (exactly 1 PDF) +
+  `angle` (90|180|270) + optional `ranges` (default all) → rotated PDF.
+  Rotation is absolute.
+- `POST /api/v1/tools/pdf/delete-pages` — multipart `files` (exactly 1 PDF) +
+  required `ranges` → PDF without those pages. `400` if all pages removed.
+- `POST /api/v1/tools/pdf/text` — multipart `files` (exactly 1 PDF) →
+  `{pageCount, pages, charCount}` JSON (no download).
+- `POST /api/v1/tools/pdf/metadata` — multipart `files` (exactly 1 PDF) →
+  document metadata JSON (absent fields null, never echoes bytes).
+- `POST /api/v1/tools/pdf/watermark` — multipart `files` (exactly 1 PDF) +
+  `text` (1–100 chars) + optional `opacity` (0.05–0.5, default 0.15) and `size`
+  (12–144, default 48) → diagonal translucent stamp on every page.
+- `POST /api/v1/tools/pdf/number-pages` — multipart `files` (exactly 1 PDF) +
+  optional `format` (`n-of-total` default, `n`) and `size` → bottom-center
+  numbers on every page.
+- `POST /api/v1/tools/pdf/header-footer` — multipart `files` (exactly 1 PDF) +
+  `header` and/or `footer` (at least one, ≤200 chars) + optional `size` →
+  top/bottom-center text on every page.
+- `POST /api/v1/tools/pdf/reorder` — multipart `files` (exactly 1 PDF) +
+  `order` (e.g. `"3,1,2"`) → pages rearranged; must list every page exactly
+  once. `400` otherwise.
+- `POST /api/v1/tools/pdf/duplicate` — multipart `files` (exactly 1 PDF) +
+  `ranges` + `times` (1–10, default 1) → original pages plus appended copies.
+- `POST /api/v1/tools/pdf/flatten` — multipart `files` (exactly 1 PDF) →
+  normalized fresh file (drops incremental history; metadata preserved,
+  unlike compress).
+- `POST /api/v1/tools/pdf/search` — multipart `files` (exactly 1 PDF) +
+  `query` (1–200 chars) → `{pageCount, query, matches:[{page,line}]}` JSON
+  (case-insensitive, capped at 50).
+- `POST /api/v1/tools/document/word-to-txt` — multipart `files` (exactly 1
+  `.docx`) → plain-text download (paragraphs separated by blank lines).
+- `POST /api/v1/tools/document/word-to-html` — multipart `files` (exactly 1
+  `.docx`) → escaped single-page HTML download.
+- `POST /api/v1/tools/document/word-to-markdown` — multipart `files`
+  (exactly 1 `.docx`) → Markdown download (plain paragraphs).
+- `POST /api/v1/tools/document/txt-to-pdf` — multipart `files` (exactly 1
+  `.txt`, UTF-8, ≤2000 lines) → paginated PDF via the shared renderer.
+  `400` for binary or empty input.
+- `POST /api/v1/tools/document/excel-to-csv` — multipart `files` (exactly 1
+  `.xlsx`) → first worksheet as CSV download (header row included). `.xls`
+  (legacy BIFF) unsupported.
+- `POST /api/v1/tools/document/excel-to-json` — multipart `files` (exactly 1
+  `.xlsx`) → JSON array download (first row = keys).
+- `POST /api/v1/tools/document/csv-to-json` — multipart `files` (exactly 1
+  `.csv`) → JSON array download.
+- `POST /api/v1/tools/document/csv-to-excel` — multipart `files` (exactly 1
+  `.csv`) → `.xlsx` download.
+- `POST /api/v1/tools/document/json-to-csv` — multipart `files` (exactly 1
+  `.json`, array of objects ≤50k rows/100 cols) → CSV download (union keys in
+  first-seen order, nested values JSON-encoded).
+- `POST /api/v1/tools/document/markdown-to-html` — multipart `files`
+  (exactly 1 `.md`/`.markdown`, ≤500k chars) → standalone HTML download
+  (scripts + event handlers stripped; consumers embedding it must sandbox).
+- `POST /api/v1/tools/document/metadata` — multipart `files` (exactly 1
+  `.docx`/`.xlsx`) → metadata JSON (absent fields null, never echoes bytes).
+- `POST /api/v1/tools/image/resize` — multipart `files` (exactly 1 image) +
+  `width` and/or `height` (at least one, 1–8000px) → aspect-preserved resize,
+  never upscaled. `400` when neither given.
+- `POST /api/v1/tools/image/crop` — multipart `files` (exactly 1 image) +
+  `left/top/width/height` → exact region crop. `400` when the region exceeds
+  the real dimensions.
+- `POST /api/v1/tools/image/rotate` — multipart `files` (exactly 1 image) +
+  `angle` (90|180|270) → physically rotated pixels (dimensions swap on 90°).
+- `POST /api/v1/tools/image/flip` — multipart `files` (exactly 1 image) +
+  `direction` (`horizontal|vertical`) → mirrored image, same format.
+- `POST /api/v1/tools/file/zip-create` — multipart `files` (2–20 files,
+  common types, executables blocked, 50 MB combined) → ZIP download with
+  sanitized entry names.
+- `POST /api/v1/tools/file/zip-extract` — multipart `files` (exactly 1
+  `.zip`) → `{count, files:[{fileId, downloadUrl, name, size, mimeType}]}`
+  JSON (≤50 entries, ≤50 MB uncompressed; traversal names sanitized).
+- `POST /api/v1/tools/file/hash` — multipart `files` (exactly 1 file, any
+  type — bytes hashed, never stored) → `{sha256, sha512, size}` JSON.
+- `POST /api/v1/tools/file/base64-encode` — multipart `files` (exactly 1
+  file ≤5 MB) → `.b64` text download.
+- `POST /api/v1/tools/file/base64-decode` — multipart `files` (exactly 1
+  `.txt`/`.b64`/`.md`/`.csv`/`.json`) → raw bytes download (`bin`,
+  octet-stream). Strict: invalid characters fail.
+- `POST /api/v1/tools/image/grayscale` — multipart `files` (exactly 1
+  image, no params) → grayscale image, same format.
+- `POST /api/v1/tools/image/blur` — multipart `files` (exactly 1 image) +
+  `sigma` (0.3–50, default 5) → blurred image.
+- `POST /api/v1/tools/image/sharpen` — multipart `files` (exactly 1 image) +
+  `sigma` (0.5–10, default 1) → sharpened image.
+- `POST /api/v1/tools/image/brightness` — multipart `files` (exactly 1
+  image) + `level` (0.1–3, default 1.2) → brightness-adjusted image.
+- `POST /api/v1/tools/image/contrast` — multipart `files` (exactly 1 image) +
+  `level` (0.1–3, default 1.2, linear around midpoint) → adjusted image.
+- `POST /api/v1/tools/file/metadata` — multipart `files` (any single file
+  ≤10 MB, inspected never stored) → `{name, size, declaredMime,
+  detectedType, detectedMime, sha256, textLines}` JSON.
+- `POST /api/v1/tools/file/type` — multipart `files` (any single file) →
+  `{type, mime}` from content sniffing (png/jpeg/webp/gif/pdf/zip/docx/xlsx/
+  pptx/mp3/mp4/text/unknown); extension ignored.
+- `POST /api/v1/tools/image/pixelate` — multipart `files` (exactly 1 image)
+  + `blocks` (4–100, default 20) → nearest-neighbor pixelation, same dims.
+- `POST /api/v1/tools/image/watermark` — multipart `files` (exactly 1 image)
+  + `text` (1–100) + `position` (5 corners/center) + `opacity`/`size` →
+  SVG-composite text overlay.
+- `POST /api/v1/tools/image/metadata` — multipart `files` (exactly 1 image)
+  → sharp metadata JSON (never echoes bytes).
+- `POST /api/v1/tools/file/merge` — multipart `files` (2–20, same text ext:
+  txt/md/csv/json) → newline-concatenated download. `400` on mixed types.
+- `POST /api/v1/tools/file/split` — multipart `files` (exactly 1 text file)
+  → ZIP of ≤20 even line chunks. `400` for binary input.
+- `POST /api/v1/tools/file/compress` — multipart `files` (exactly 1 file
+  ≤5 MB) → gzip (`.gz`) download.
+- `POST /api/v1/tools/pdf/redact` — multipart `files` (exactly 1 PDF) +
+  `regions` JSON string (`[{"page":1,"x":10,"y":10,"w":100,"h":20}]`, ≤100)
+  → black-box covered PDF. **Visual cover only** — underlying text stays
+  extractable; not for truly sensitive data.
+- `POST /api/v1/tools/image/social` — multipart `files` (exactly 1 image) +
+  `preset` (`og` 1200x630, `square` 1080x1080, `story` 1080x1920, `banner`
+  1500x500) → cover-fit canvas.
+- `POST /api/v1/tools/image/passport` — multipart `files` (exactly 1 image,
+  no params) → center 413x531 crop (35x45mm @300dpi, no face detection).
+- `POST /api/v1/tools/image/montage` — multipart `files` (2–9 images, exact
+  grid `cols`×`rows` count) + optional `gap`, `background` → grid montage.
+  `400` on count mismatch or invalid params.
+- `POST /api/v1/tools/image/exif-remove` — multipart `files` (exactly 1
+  image, no params) → near-lossless re-encode with all metadata dropped.
+- `POST /api/v1/tools/image/favicon` — multipart `files` (exactly 1 image,
+  no params) → ZIP of 16/32/48/180/192px PNGs + `site.webmanifest`.
+
 ## Admin (Bearer + `ADMIN_EMAILS`)
 
 Gate: comma-separated allowlist in env. Empty allowlist → every request gets

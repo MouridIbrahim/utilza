@@ -1,3 +1,4 @@
+
 # Utilza_backend — Build Tasks
 
 Source of truth:
@@ -235,41 +236,96 @@ Files: `src/modules/tools/pdf|image|document|file/`, shared execute helper
 Per-tool checklist (each its own task): route + processor + Zod validation + file content checks + 413/400 codes + `GeneratedFile` row + registry `implementation:"backend"` + tests (valid, bad type, oversize, traversal) + seed + docs.
 
 ### TASK-104 — PDF Merge → `POST /api/v1/tools/pdf/merge` (pdf-lib)
-- [ ] Implement + tests + seed + docs
+- [x] Implement + tests + seed + docs
 
 ### TASK-105 — PDF Split → `POST /api/v1/tools/pdf/split` (pdf-lib)
-- [ ] Implement + tests + seed + docs
+- [x] Implement + tests + seed + docs
 
 ### TASK-106 — PDF Compress → `POST /api/v1/tools/pdf/compress`
-- [ ] Implement + tests + seed + docs
+- [x] Implement + tests + seed + docs
 
 ### TASK-107 — PDF to Word → `POST /api/v1/tools/pdf/to-word`
-- [ ] Spike conversion lib first (heaviest risk); then implement + tests + seed + docs
+- [x] Spike conversion lib first (heaviest risk); then implement + tests + seed + docs
 
 ### TASK-108 — Image Compressor → `POST /api/v1/tools/image/compress` (sharp)
-- [ ] Implement + tests + seed + docs
+- [x] Implement + tests + seed + docs
 
 ### TASK-109 — Image Converter → `POST /api/v1/tools/image/convert` (sharp)
-- [ ] Implement + tests + seed + docs
+- [x] Implement + tests + seed + docs
 
 ### TASK-110 — Word to PDF → `POST /api/v1/tools/document/to-pdf`
-- [ ] Implement + tests + seed + docs
+- [x] Implement + tests + seed + docs
 
 ---
 
 ## Phase 8 — Wave 2: catalog batches (one task per tool)
 
-### TASK-111 — F: PDF remaining (31)
+### TASK-111a — F: PDF zero-new-dep tools (5 routes, current deps only)
+- [x] image-to-pdf (JPG/PNG→PDF, pdf-lib embed), pdf-rotate (angle+ranges), pdf-page-delete (ranges), pdf-text (pdfjs extract → JSON), pdf-metadata (pdf-lib getters → JSON)
+
+### TASK-111b-i — F: PDF text-stamping trio (watermark, number-pages, header-footer)
+- [x] Shared centered-text stamper; 3 routes, zero new deps
+
+### TASK-111b-ii — F: PDF page ops (reorder, duplicate, flatten, text search)
+- [x] Reorder (true permutation), duplicate (ranges×times appended), flatten (fresh-doc normalize, metadata kept), search (JSON matches, capped)
+
+### TASK-111c-spike — F heavy feasibility assessment (no builders yet)
+- [x] Verified in `node_modules/pdf-lib`: parsers only reference `/Encrypt` (no writer) → protect/unlock needs another lib (deferred). AcroForm exists → form-fill/flatten-form feasible later. Redact-by-coords feasible zero-dep (drawRectangle, same stamper pattern) → queued as next slice. Raster needs node-canvas (native), HTML→PDF needs Chromium (~120MB), Office↔PDF needs LibreOffice, OCR (tesseract WASM + models, CPU-heavy) belongs behind T115 queue + cost controls → all four deferred with rationale recorded here
+
+### TASK-111c-i — F: PDF redact-by-coords (zero-dep, drawRectangle cover)
+- [x] Regions [{page,x,y,w,h}]; documented as visual-cover only (text stays extractable)
+
+### TASK-111c — F: heavy PDF tools (gated on spikes above)
+- [ ] OCR, protect/unlock, Office↔PDF, HTML→PDF, raster to-JPG/PNG, sign/annotate (redact split out above)
+
+### TASK-111 (tracker) — F: PDF remaining (31)
 - [ ] to-JPG/PNG, JPG/PNG→PDF, HTML→PDF, Excel/PowerPoint↔PDF, OCR, text extract, metadata view/edit, protect/unlock, watermark, rotate, page delete/reorder/extract/duplicate, header/footer, numbering, sign, annotate, redact, flatten, repair, compare, search
 
-### TASK-112 — G: Documents remaining (19)
-- [ ] Word→TXT/HTML/Markdown, Excel→CSV/JSON, CSV→Excel/JSON, JSON→CSV, PPT→images, compressor, metadata viewer, TXT/Markdown→PDF/HTML, HTML→DOCX
+### TASK-112a — G: text-level document conversions (word-to-txt/html/markdown, txt-to-pdf)
+- [x] Reuse docx extractor + PDF renderer; zero new deps
 
-### TASK-113 — E: Image remaining (28)
-- [ ] Resizer, cropper, rotator, flipper, format batch (JPG↔PNG, WebP, HEIC, GIF), metadata viewer, EXIF remover, watermark, blur/sharpen/grayscale/color, background removal, upscaler, optimizer, image→PDF, ZIP, montage, favicon/social/passport generators
+### TASK-112b — G: spreadsheet/data conversions (needs xlsx dep decision)
+- [x] exceljs + pinned uuid (overrides), hand-rolled CSV; excel-to-csv/json, csv-to-json/excel, json-to-csv
 
-### TASK-114 — M: File tools (15)
-- [ ] ZIP/TAR create/extract, compressor, metadata viewer, hash, type detector, rename, batch, merger, splitter, archive converter
+### TASK-112c-i — G: markdown-to-html + document-metadata (marked dep + existing deps)
+- [x] md→html file download (script-stripped); metadata viewer for docx/xlsx → JSON
+
+### TASK-112c-ii — G: remaining (needs heavy spikes, deferred)
+- [ ] Later: PPT→images, doc compressor, HTML→DOCX (LibreOffice/browser territory), TXT/Markdown→PDF remainder
+
+### TASK-113a — E: image geometry quartet (resizer, cropper, rotator, flipper)
+- [x] All sharp, zero new deps; shared probe/pipeline helpers; one batch test file
+
+### TASK-113b-i — E: image filters (grayscale, blur, sharpen, brightness, contrast)
+- [x] All sharp one-liners + params; one batch test file
+
+### TASK-113b-ii-i — E: pixelate + text watermark + image metadata (sharp, zero new deps)
+- [x] Pixelate (nearest-neighbor), SVG-composite text watermark, metadata JSON
+
+### TASK-113b-ii-ii — E: EXIF remover + favicon generator (sharp/zip, zero new deps)
+- [x] Metadata-stripping rewrite (orientation-tag test); multi-size favicon ZIP + manifest
+
+### TASK-113b-iii — E: social + passport presets (sharp cover-fit, zero new deps)
+- [x] og/square/story/banner presets; 413x531 passport crop (center, no face detection)
+
+### TASK-113b-ii-i — E: image montage (sharp, zero new deps)
+- [x] Grid layout (rows/cols), padding, background; preserves aspect per cell
+- [x] Visual cover only - text stays extractable; documented as known limitation (text remains extractable)
+
+### TASK-113b-ii — E: image remaining (later)
+- [ ] Background removal/upscaler (AI-gated)
+
+### TASK-114a — M: archive + encoding quintet (zip-create/extract, file-hash, base64-encode/decode)
+- [x] jszip + node:crypto only; zip-bomb caps; executable blocklist on create
+
+### TASK-114b-i — M: file metadata viewer + type detector (magic-byte sniffer, zero new deps)
+- [x] metadata JSON (size/ext/hash/lines) + type sniff (png/jpg/webp/gif/pdf/zip/docx/xlsx/mp3/mp4/txt)
+
+### TASK-114b-ii-i — M: text merger/splitter + gzip compressor (Buffer/zlib/zip, zero new deps)
+- [x] Merger (uniform text ext), splitter (→ZIP parts), gzip (.gz download)
+
+### TASK-114b-ii — M: file tools remaining (later)
+- [ ] Rename helper, batch processor, archive converter, folder↔ZIP
 
 ---
 
