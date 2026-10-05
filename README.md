@@ -1,4 +1,3 @@
-[README(1).md](https://github.com/user-attachments/files/33047466/README.1.md)
 # ⚡ UTILZA
 
 <p align="center">
