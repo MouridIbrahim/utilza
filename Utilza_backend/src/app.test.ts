@@ -31,6 +31,22 @@ describe("tools registry (DB fallback)", () => {
     expect(res.body.data.slug).toBe("percentage-calculator");
   });
 
+  it("exposes new-architecture classification on every tool", async () => {
+    const res = await request(app).get("/api/v1/tools?limit=50");
+    expect(res.status).toBe(200);
+    const items = res.body.data.items as Array<Record<string, unknown>>;
+    expect(items.length).toBeGreaterThanOrEqual(10);
+    for (const item of items) {
+      expect(["frontend", "backend"]).toContain(item["implementation"]);
+      expect(item["platforms"]).toEqual(expect.arrayContaining(["web", "mobile"]));
+      expect(typeof item["requiresFile"]).toBe("boolean");
+      expect(typeof item["requiresAuth"]).toBe("boolean");
+      expect(typeof item["supportsOffline"]).toBe("boolean");
+    }
+    // All 10 MVP tools are frontend tools (06 §26 — no backend endpoint).
+    expect(items.every((i) => i["implementation"] === "frontend")).toBe(true);
+  });
+
   it("404 unknown tool with stable code", async () => {
     const res = await request(app).get("/api/v1/tools/nope-not-real");
     expect(res.status).toBe(404);

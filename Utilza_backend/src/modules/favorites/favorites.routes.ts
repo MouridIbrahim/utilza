@@ -5,6 +5,7 @@ import { validate } from "../../middleware/validation.middleware.js";
 import { asyncHandler, sendSuccess } from "../../utils/handler.js";
 import { prisma } from "../../lib/prisma.js";
 import { conflict, notFound } from "../../utils/errors.js";
+import { isUniqueViolation } from "../../utils/prisma-errors.js";
 
 const createSchema = z.object({ toolId: z.string().min(1).max(64) });
 const idParams = z.object({ toolId: z.string().min(1).max(64) });
@@ -31,12 +32,15 @@ favoritesRouter.post(
     const { toolId } = req.body as { toolId: string };
     const tool = await prisma.tool.findUnique({ where: { id: toolId } });
     if (!tool || !tool.isActive) throw notFound("Tool not found.", "TOOL_NOT_FOUND");
-    const existing = await prisma.favorite.findUnique({
-      where: { userId_toolId: { userId: req.user!.id, toolId } },
-    });
-    if (existing) throw conflict("Already favorited.", "ALREADY_FAVORITED");
-    const fav = await prisma.favorite.create({ data: { userId: req.user!.id, toolId } });
-    sendSuccess(res, fav, 201);
+    try {
+      // unique(userId, toolId) enforces one favorite atomically; the catch
+      // turns a concurrent-create race into the same stable 409.
+      const fav = await prisma.favorite.create({ data: { userId: req.user!.id, toolId } });
+      sendSuccess(res, fav, 201);
+    } catch (err) {
+      if (isUniqueViolation(err)) throw conflict("Already favorited.", "ALREADY_FAVORITED");
+      throw err;
+    }
   }),
 );
 

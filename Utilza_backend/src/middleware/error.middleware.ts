@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import multer from "multer";
 import { logger } from "../lib/logger.js";
 import { env } from "../config/env.js";
 
@@ -14,11 +15,10 @@ export function errorMiddleware(
   err: AppError,
   req: Request,
   res: Response,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction,
 ): void {
-  const status = err.status ?? 500;
-  const code =
+  let status = err.status ?? 500;
+  let code =
     err.code ??
     (status === 400
       ? "VALIDATION_ERROR"
@@ -30,13 +30,27 @@ export function errorMiddleware(
             ? "NOT_FOUND"
             : status === 409
               ? "CONFLICT"
-              : status === 429
-                ? "RATE_LIMITED"
-                : "INTERNAL_ERROR");
+              : status === 410
+                ? "GONE"
+                : status === 413
+                  ? "PAYLOAD_TOO_LARGE"
+                  : status === 429
+                    ? "RATE_LIMITED"
+                    : "INTERNAL_ERROR");
+
+  if (err instanceof multer.MulterError) {
+    status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+    code = err.code === "LIMIT_FILE_SIZE" ? "FILE_TOO_LARGE" : "UPLOAD_ERROR";
+  }
 
   const message =
-    status >= 500 ? "Something went wrong. Please try again." : (err.message ?? "Request failed.");
-
+    status >= 500
+      ? "Something went wrong. Please try again."
+      : err instanceof multer.MulterError
+        ? status === 413
+          ? "File too large."
+          : "Invalid upload."
+        : (err.message ?? "Request failed.");
   logger.error(
     {
       reqId: (req as Request & { id?: string }).id,
@@ -53,7 +67,9 @@ export function errorMiddleware(
     error: {
       code,
       message,
-      ...(env.NODE_ENV === "development" && err.details !== undefined
+      // Field-level validation details are safe (no paths/stack/secrets).
+      // Production responses stay minimal per 02-BACKEND.md:237.
+      ...(env.NODE_ENV !== "production" && err.details !== undefined
         ? { details: err.details }
         : {}),
     },

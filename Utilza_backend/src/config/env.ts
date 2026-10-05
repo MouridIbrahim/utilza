@@ -40,7 +40,6 @@ function buildEnv() {
   const parsed = envSchema.safeParse(raw);
   if (!parsed.success) {
     const details = parsed.error.flatten().fieldErrors;
-    // eslint-disable-next-line no-console
     console.error("Invalid environment configuration:", details);
     throw new Error("Invalid environment configuration");
   }

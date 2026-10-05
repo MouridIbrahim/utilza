@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../../lib/prisma.js";
 import { signToken } from "../../middleware/auth.middleware.js";
 import { conflict, unauthorized } from "../../utils/errors.js";
+import { isUniqueViolation } from "../../utils/prisma-errors.js";
 
 export const registerSchema = z.object({
   email: z.string().email().max(255),
@@ -26,9 +27,17 @@ export async function register(input: RegisterInput) {
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
   if (existing) throw conflict("An account with this email already exists.", "EMAIL_TAKEN");
   const passwordHash = await bcrypt.hash(input.password, 12);
-  const user = await prisma.user.create({
-    data: { email: input.email, passwordHash, name: input.name ?? null },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: { email: input.email, passwordHash, name: input.name ?? null },
+    });
+  } catch (err) {
+    // Concurrent registration race on unique(email) → stable 409.
+    if (isUniqueViolation(err))
+      throw conflict("An account with this email already exists.", "EMAIL_TAKEN");
+    throw err;
+  }
   const token = signToken(user.id, user.email);
   return { user: toPublicUser(user), token };
 }

@@ -31,3 +31,9 @@ export function conflict(message: string, code = "CONFLICT") {
   err.code = code;
   return err;
 }
+
+export function gone(message = "Gone.", code = "GONE") {
+  const err = createHttpError(410, message) as Error & { code?: string };
+  err.code = code;
+  return err;
+}

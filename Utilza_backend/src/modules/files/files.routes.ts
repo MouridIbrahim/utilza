@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import multer from "multer";
+import { z } from "zod";
 import { fileLimiter } from "../../middleware/rate-limit.middleware.js";
+import { validate } from "../../middleware/validation.middleware.js";
 import { asyncHandler, sendSuccess } from "../../utils/handler.js";
-import { badRequest } from "../../utils/errors.js";
+import { badRequest, gone, notFound } from "../../utils/errors.js";
 import { logger } from "../../lib/logger.js";
+import { prisma } from "../../lib/prisma.js";
+import { tempStorage } from "../../lib/storage.js";
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB MVP limit
 const ALLOWED_EXT = new Set(["png", "jpg", "jpeg", "webp", "pdf"]);
@@ -18,6 +22,8 @@ function extOf(filename: string): string {
   const parts = filename.toLowerCase().split(".");
   return parts.length > 1 ? (parts[parts.length - 1] as string) : "";
 }
+
+const fileIdParams = z.object({ fileId: z.string().min(20).max(30) });
 
 export const filesRouter = Router();
 
@@ -49,5 +55,32 @@ filesRouter.post(
       size: file.size,
       note: "MVP stub: validated only. Transforms not yet implemented.",
     });
+  }),
+);
+
+// Download for files produced by backend tool executors (TASK-103).
+// Filename is derived server-side — the user filename is never used or echoed.
+filesRouter.get(
+  "/:fileId",
+  validate({ params: fileIdParams }),
+  asyncHandler(async (req, res) => {
+    const fileId = req.params["fileId"] as string;
+    const row = await prisma.generatedFile.findUnique({ where: { id: fileId } });
+    if (!row || row.status !== "ready") throw notFound("File not found.", "FILE_NOT_FOUND");
+    if (row.expiresAt && row.expiresAt.getTime() <= Date.now()) {
+      await prisma.generatedFile
+        .update({ where: { id: row.id }, data: { status: "expired" } })
+        .catch(() => undefined);
+      throw gone("File expired.", "FILE_EXPIRED");
+    }
+    const bytes = await tempStorage.get(row.storageKey);
+    if (!bytes) throw notFound("File not found.", "FILE_NOT_FOUND");
+    const ext = row.storageKey.split(".").pop() ?? "bin";
+    res.setHeader("Content-Type", row.mimeType ?? "application/octet-stream");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${row.toolSlug ?? "result"}-result.${ext}"`,
+    );
+    res.send(bytes);
   }),
 );

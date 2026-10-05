@@ -10,6 +10,8 @@ export interface RegistryCategory {
   isActive: boolean;
 }
 
+export type ToolImplementation = "frontend" | "backend";
+
 export interface RegistryTool {
   id: string;
   name: string;
@@ -20,7 +22,26 @@ export interface RegistryTool {
   sortOrder: number;
   categoryId: string;
   categorySlug: string;
+  implementation: ToolImplementation;
+  platforms: string[];
+  requiresFile: boolean;
+  requiresAuth: boolean;
+  supportsOffline: boolean;
 }
+
+const frontendDefaults: {
+  implementation: ToolImplementation;
+  platforms: string[];
+  requiresFile: boolean;
+  requiresAuth: boolean;
+  supportsOffline: boolean;
+} = {
+  implementation: "frontend",
+  platforms: ["web", "mobile"],
+  requiresFile: false,
+  requiresAuth: false,
+  supportsOffline: true,
+};
 
 export const registryCategories: RegistryCategory[] = [
   {
@@ -68,6 +89,7 @@ export const registryTools: RegistryTool[] = [
     sortOrder: 1,
     categoryId: "cat-calculators",
     categorySlug: "calculators",
+    ...frontendDefaults,
   },
   {
     id: "tool-discount",
@@ -79,6 +101,7 @@ export const registryTools: RegistryTool[] = [
     sortOrder: 2,
     categoryId: "cat-calculators",
     categorySlug: "calculators",
+    ...frontendDefaults,
   },
   {
     id: "tool-age",
@@ -90,6 +113,7 @@ export const registryTools: RegistryTool[] = [
     sortOrder: 3,
     categoryId: "cat-date-time",
     categorySlug: "date-time",
+    ...frontendDefaults,
   },
   {
     id: "tool-date-diff",
@@ -101,6 +125,7 @@ export const registryTools: RegistryTool[] = [
     sortOrder: 4,
     categoryId: "cat-date-time",
     categorySlug: "date-time",
+    ...frontendDefaults,
   },
   {
     id: "tool-unit",
@@ -112,6 +137,7 @@ export const registryTools: RegistryTool[] = [
     sortOrder: 5,
     categoryId: "cat-calculators",
     categorySlug: "calculators",
+    ...frontendDefaults,
   },
   {
     id: "tool-word",
@@ -123,6 +149,7 @@ export const registryTools: RegistryTool[] = [
     sortOrder: 6,
     categoryId: "cat-text",
     categorySlug: "text",
+    ...frontendDefaults,
   },
   {
     id: "tool-char",
@@ -134,6 +161,7 @@ export const registryTools: RegistryTool[] = [
     sortOrder: 7,
     categoryId: "cat-text",
     categorySlug: "text",
+    ...frontendDefaults,
   },
   {
     id: "tool-case",
@@ -145,6 +173,7 @@ export const registryTools: RegistryTool[] = [
     sortOrder: 8,
     categoryId: "cat-text",
     categorySlug: "text",
+    ...frontendDefaults,
   },
   {
     id: "tool-pass",
@@ -156,6 +185,7 @@ export const registryTools: RegistryTool[] = [
     sortOrder: 9,
     categoryId: "cat-generators",
     categorySlug: "generators",
+    ...frontendDefaults,
   },
   {
     id: "tool-qr",
@@ -167,5 +197,6 @@ export const registryTools: RegistryTool[] = [
     sortOrder: 10,
     categoryId: "cat-generators",
     categorySlug: "generators",
+    ...frontendDefaults,
   },
 ];

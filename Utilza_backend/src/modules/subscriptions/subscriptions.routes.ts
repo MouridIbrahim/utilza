@@ -4,6 +4,19 @@ import { asyncHandler, sendSuccess } from "../../utils/handler.js";
 import { prisma } from "../../lib/prisma.js";
 
 export const subscriptionsRouter = Router();
+
+// Public stub: payment providers cannot send a Bearer token. Real webhook
+// verification arrives with the premium billing milestone.
+subscriptionsRouter.post("/webhook", (_req, res) => {
+  res.status(501).json({
+    success: false,
+    error: {
+      code: "NOT_IMPLEMENTED",
+      message: "Subscriptions are stubbed for MVP.",
+    },
+  });
+});
+
 subscriptionsRouter.use(requireAuth);
 
 subscriptionsRouter.get(
@@ -13,7 +26,3 @@ subscriptionsRouter.get(
     sendSuccess(res, sub ?? { status: "free", tier: "free" });
   }),
 );
-
-subscriptionsRouter.post("/webhook", (_req, res) => {
-  sendSuccess(res, { code: "NOT_IMPLEMENTED", message: "Subscriptions are stubbed for MVP." }, 501);
-});

@@ -39,6 +39,13 @@ model Tool {
   icon        String?
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0)
+  // New-architecture classification (06-FULL-PROJECT-ARCHITECTURE.md §20):
+  // "frontend" = React+Flutter own the logic; "backend" = Node.js executes it.
+  implementation  String   @default("frontend")
+  platforms       String[] @default(["web", "mobile"])
+  requiresFile    Boolean  @default(false)
+  requiresAuth    Boolean  @default(false)
+  supportsOffline Boolean  @default(true)
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   favorites   Favorite[]
@@ -47,6 +54,7 @@ model Tool {
 
   @@index([categoryId, isActive])
   @@index([slug])
+  @@index([implementation, isActive])
 }
 
 model Favorite {
@@ -66,10 +74,35 @@ model ToolHistory {
   userId       String
   toolSlug     String
   inputSummary String?  @db.VarChar(500)
+  // New-architecture execution metadata (06 §17). Nullable so existing rows
+  // stay valid; routes default them on write.
+  executionType String?  @db.VarChar(16) // "frontend" | "backend"
+  status        String   @default("completed") @db.VarChar(32)
+  metadata      Json?
   createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+// Metadata for files produced by backend tools (06 §13). The bytes live in
+// object storage (or local temp); the DB holds only the pointer + lifecycle.
+model GeneratedFile {
+  id           String    @id @default(cuid())
+  userId       String?
+  toolId       String?
+  toolSlug     String?   @db.VarChar(100)
+  storageKey   String    @unique @db.VarChar(512)
+  originalName String?   @db.VarChar(255)
+  mimeType     String?   @db.VarChar(128)
+  size         Int
+  status       String    @default("ready") @db.VarChar(32) // ready|expired|deleted
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime?
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([toolSlug])
 }
 
 model Subscription {

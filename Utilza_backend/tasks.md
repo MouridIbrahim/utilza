@@ -4,10 +4,13 @@ Source of truth:
 - `E:\Utilza\01-PROJECT.md`
 - `E:\Utilza\Utilza_backend\02-BACKEND.md`
 - `E:\Utilza\05-AI-AGENT-RULES.md`
+- `C:\Users\mouri\Downloads\06-FULL-PROJECT-ARCHITECTURE.md` (authoritative tool architecture; SIMPLE=frontend-only, COMPLEX=backend-only)
 
 Current state: `E:\Utilza\Utilza_backend\package.json:1` is empty scaffold (no deps, no `src/`). All work below is greenfield. Follow `05-AI-AGENT-RULES.md:33` — one task at a time, inspect before edit, verify before marking done.
 
 Update 2026-10-01: backend MVP is live against Neon (migration `20261001094756_init` applied, 4 categories + 10 tools seeded, `GET /api/v1/health` returns `db:true`, 12/12 tests + 8/8 live smoke passed). Checkboxes below reflect verified state — partial tasks left unchecked per No Fake Completion rule.
+
+Update 2026-10-02: all remaining implementation tasks completed. Full gate green — `format → lint (0 problems) → typecheck → 126/126 tests (11 files)` against live Neon; `npm audit` = 0 vulnerabilities (vitest 2→5 upgrade cleared dev-tool CVEs); production-mode local smoke passed (`NODE_ENV=production node dist/server.js`: health `db:true`, helmet headers, register/login/users flow, 400 without `details` in prod, cleanup). Added: admin module (read-only tools/users behind `ADMIN_EMAILS`), category write stubs (501, documented decision), `requireOwnership` helper, race-safe 409s (P2002), Multer/`PAYLOAD_TOO_LARGE` error mapping, analytics `toolSlug` validation, full test suite (unit + integration + security + docs-contract), `docs/API.md` complete, `docs/DEPLOY.md` runbook. Two items still require external resources — see TASK-019/TASK-020 notes.
 
 API base: `/api/v1` (`02-BACKEND.md:149`).
 Standard error shape: `{success:false, error:{code,message,details}}` (`02-BACKEND.md:210`).
@@ -27,7 +30,7 @@ Standard error shape: `{success:false, error:{code,message,details}}` (`02-BACKE
 Files: `src/config/env.ts`, `src/config/database.ts`
 - [x] Implement `env.ts`: parse/validate `NODE_ENV, PORT=4000, DATABASE_URL, JWT_SECRET, CORS_ORIGIN, STORAGE_ENDPOINT, STORAGE_BUCKET, STORAGE_ACCESS_KEY, STORAGE_SECRET_KEY` (`02-BACKEND.md:383`)
 - [x] Fail fast on missing `DATABASE_URL` / `JWT_SECRET` in non-test env
-- [x] Never commit real values; keep `.env.example` in sync
+- [x] Never commit real values; keep `.env.example` in sync (`ADMIN_EMAILS` added)
 - [x] Verify: `npm run typecheck`
 
 ---
@@ -85,15 +88,15 @@ Files: `src/modules/auth/auth.{controller,service,routes,schema,types}.ts`
 - [x] `POST /api/v1/auth/login` — validate, compare hash, generic `Invalid credentials` on fail, rate-limited
 - [x] `POST /api/v1/auth/logout` (stateless ack / blacklist stub), `GET /api/v1/auth/me` (protected)
 - [x] Never return `passwordHash`; never log passwords/tokens (`02-BACKEND.md:189`)
-- [ ] Tests: unit (hash/validate) + integration (register/login/duplicate/bad input/rate-limit)
-- [ ] Verify: `npm run test -- auth`
+- [x] Tests: unit (hash/validate) + integration (register/login/duplicate/bad input/rate-limit) — `src/modules/auth/auth.test.ts` (9 tests)
+- [x] Verify: `npm test` auth suite green
 
 ### TASK-008 — Users module
 Files: `src/modules/users/*`
 - [x] `GET /api/v1/users/me`, `PATCH /api/v1/users/me` (name, preferences only), `DELETE /api/v1/users/me` (cascade favorites/history)
 - [x] All protected + ownership check
-- [ ] Tests: auth required, 401/403 cases
-- [ ] Verify: `npm run test -- users`
+- [x] Tests: auth required, 401/403 cases — `src/modules/users/users.test.ts` (5 tests, incl. deleted-account → 401)
+- [x] Verify: `npm test` users suite green
 
 ---
 
@@ -102,8 +105,8 @@ Files: `src/modules/users/*`
 ### TASK-009 — Categories module
 Files: `src/modules/categories/*`
 - [x] `GET /api/v1/categories` (public, only `isActive`, ordered), `GET /api/v1/categories/:slug`
-- [ ] Admin-only `POST/PATCH/DELETE` stub (return 501 or behind `isAdmin` flag — decide once, document)
-- [ ] Verify: `npm run test -- categories`
+- [x] Admin-only `POST/PATCH/DELETE` stub — **decision: 501 `NOT_IMPLEMENTED` behind Bearer + `ADMIN_EMAILS` gate**, documented in `docs/API.md`
+- [x] Verify: `npm test` categories suite green (7 tests incl. 401/403/501 paths)
 
 ### TASK-010 — Tools registry / discovery
 Files: `src/modules/tools/*`
@@ -115,25 +118,25 @@ Files: `src/modules/tools/*`
 ### TASK-011 — Favorites module
 Files: `src/modules/favorites/*`
 - [x] `GET /api/v1/favorites`, `POST /api/v1/favorites {toolId}`, `DELETE /api/v1/favorites/:toolId` — all protected
-- [x] Validate tool exists + active; unique(userId,toolId) → 409 `ALREADY_FAVORITED`; use transaction where multi-write
-- [ ] Verify: `npm run test -- favorites` (unauthorized, duplicate, invalid tool)
+- [x] Validate tool exists + active; unique(userId,toolId) → 409 `ALREADY_FAVORITED` (race-safe via P2002 catch, no check-then-write race)
+- [x] Verify: `npm test` favorites suite green (8 tests: unauthorized, duplicate, invalid tool, cross-user isolation)
 
 ### TASK-012 — History sync module
 Files: `src/modules/history/*`
 - [x] `GET /api/v1/history?limit=20` (protected, paginated, own only), `POST /api/v1/history {toolSlug, inputSummary?}`, `DELETE /api/v1/history` (clear own)
-- [x] Cap `inputSummary` length, never store file contents / sensitive data
-- [ ] Verify: `npm run test -- history`
+- [x] Cap `inputSummary` length (500), never store file contents / sensitive data
+- [x] Verify: `npm test` history suite green (6 tests incl. cross-user isolation)
 
 ### TASK-013 — Analytics events module
 Files: `src/modules/analytics/*`
 - [x] `POST /api/v1/analytics {event, toolSlug?, platform?}` — public with rate-limit, allow anonymous (`02-BACKEND.md:312`)
 - [x] Allowlist events: `tool_opened, tool_completed, tool_failed, file_uploaded, result_downloaded, result_copied, tool_favorited, search_performed`
 - [x] No PII; validate `toolSlug` exists if provided
-- [x] Verify: `npm run test -- analytics` (bad event rejected, anon accepted)
+- [x] Verify: `npm test` analytics green (bad event rejected, anon accepted, unknown toolSlug → 400)
 
 ### TASK-014 — Subscriptions stub
 Files: `src/modules/subscriptions/*`
-- [x] `GET /api/v1/subscriptions/me` (protected) returns status/tier; `POST` webhook stub → 501 with `NOT_IMPLEMENTED`
+- [x] `GET /api/v1/subscriptions/me` (protected) returns status/tier; `POST` webhook stub → 501 with `NOT_IMPLEMENTED` (public — payment providers cannot send Bearer)
 - [x] Schema ready for future premium without breaking contract
 - [x] Verify: `npm run typecheck`
 
@@ -142,55 +145,143 @@ Files: `src/modules/files/*`
 - [x] `POST /api/v1/files/process` (multer memory/tmp): validate size/type (defense-in-depth, not MIME alone), request-size limits (`02-BACKEND.md:267`)
 - [x] Flow: validate → temp id → process → return → auto-cleanup; never use user filename as path
 - [x] Rate-limit strict; structured log without file contents
-- [ ] Tests: oversize, bad type, path-traversal filename, cleanup verified
-- [ ] Verify: `npm run test -- files`
+- [x] Tests: oversize (413 `FILE_TOO_LARGE`), bad type, path-traversal filename, memory-only/no persistence — `src/modules/files/files.test.ts` (7 tests)
+- [x] Verify: `npm test` files suite green
 
 ### TASK-016 — Health + admin
-Files: `src/modules/health/*`, `src/modules/admin/*` (stub)
+Files: `src/modules/health/*`, `src/modules/admin/*`
 - [x] `GET /health`, `GET /api/v1/health` → `{success:true, data:{uptime, db:true}}` with DB ping
-- [ ] Admin router behind auth + `isAdmin` check (list tools/users read-only for now)
-- [ ] Verify: `curl` health + `npm run test -- health`
+- [x] Admin router behind auth + admin check (list tools/users read-only) — `ADMIN_EMAILS` allowlist gate; empty allowlist → 403 "not configured"
+- [x] Verify: health in `src/app.test.ts`; admin in `src/modules/admin/admin.test.ts` (6 tests) — full `npm test` green
 
 ---
 
 ## Phase 5 — Hardening, Testing, Docs
 
 ### TASK-017 — Security hardening pass
-- [ ] Helmet headers verified, CORS allowlist, JSON limit, authZ on every protected resource, no DB internals in responses, no secrets in logs (`02-BACKEND.md:248`)
-- [ ] Manual: invalid token → 401, cross-user favorite/history access → 403, malformed body → 400 `VALIDATION_ERROR`
-- [ ] Verify: `npm run test` security suite
+- [x] Helmet headers verified, CORS allowlist, JSON limit, authZ on every protected resource, no DB internals in responses, no secrets in logs (`02-BACKEND.md:248`) — `src/security.test.ts`
+- [x] Manual: invalid token → 401 (forged + expired), cross-user favorite/history access → isolated by userId scoping (asserted; no cross-user route exists; admin 403 covered), malformed body → 400 `VALIDATION_ERROR`
+- [x] Verify: `npm run test` security suite green (helmet, CORS allowlist, forged/expired JWT, malformed JSON, 404 shape, 500 redaction, secret leakage, 101kb → 413, unknown toolSlug)
 
 ### TASK-018 — Full test + quality gate
-- [ ] Unit: services, validation, utils (`02-BACKEND.md:355`)
-- [ ] Integration: routes + DB + auth/authZ (use isolated Neon branch or local Postgres)
-- [ ] `npm run format && npm run lint && npm run typecheck && npm run test`
-- [ ] No `any` without justification, no console.log in src (use logger)
+- [x] Unit: services, validation, utils (`02-BACKEND.md:355`) — `src/middleware/middleware.test.ts`, helpers, docs contract
+- [x] Integration: routes + DB + auth/authZ (runs against configured Neon `DATABASE_URL`; disposable users cleaned in `afterAll`)
+- [x] `npm run format && npm run lint && npm run typecheck && npm run test` — **126/126 tests, 0 lint problems, typecheck clean**
+- [x] No `any` without justification, no console.log in src (use logger) — eslint enforced
+- [x] `npm audit` — 0 vulnerabilities (vitest 2→5 upgrade)
 
 ### TASK-019 — API contract docs for web/flutter
-Files: `docs/API.md` or `openapi.yaml`
-- [x] Document every `/api/v1/*` route: method, auth, request/response examples, error codes
-- [ ] Any contract change updates backend types + web + flutter clients (`05-AI-AGENT-RULES.md:338`)
-- [ ] Verify: peer review — can web team implement against doc alone?
+Files: `docs/API.md`
+- [x] Document every `/api/v1/*` route: method, auth, request/response examples, error codes — full rewrite incl. admin, stubs, rate limits, pagination, error-code table
+- [x] Any contract change updates backend types + web + flutter clients (`05-AI-AGENT-RULES.md:338`) — **no client code exists yet** (web = spec only, mobile = fresh Flutter scaffold); `docs.API.md` contract test (42 assertions) fails if a route/code is undocumented
+- [ ] Verify: peer review — pending: no web team/client implementation has started yet (revisit when `Utilza_webApp` consumes the API)
 
 ### TASK-020 — Prod readiness / deploy
-- [ ] `prisma migrate deploy` runbook, `NODE_ENV=production`, HTTPS/CORS prod values, storage env set
-- [ ] Graceful shutdown, health check for host, log redaction audit
-- [ ] Verify: staging deploy + `GET /api/v1/tools/percentage-calculator` + auth flow smoke test
+- [x] `prisma migrate deploy` runbook (`docs/DEPLOY.md`), `NODE_ENV=production`, HTTPS/CORS prod values, storage env set
+- [x] Graceful shutdown (SIGTERM/SIGINT + 10s force-exit), health check for host (`/health` liveness, `/api/v1/health` `db` readiness), log redaction audit (redact list + security tests assert no leakage in responses)
+- [ ] Verify: staging deploy + `GET /api/v1/tools/percentage-calculator` + auth flow smoke test — **local production-mode smoke passed** (`PROD_SMOKE_PASS`: health `db:true`, tool slug, register/login/users flow, prod error shape without `details`, helmet headers). Staging deploy still pending: no hosting target configured (needs a host + prod `CORS_ORIGIN`/`JWT_SECRET`)
 
 ---
 
 ## Definition of Done (per task, per `05-AI-AGENT-RULES.md:530`)
-- [ ] Requirement understood
-- [ ] Existing code inspected
-- [ ] Architecture respected (thin controller, logic in service)
-- [ ] Input validation implemented
-- [ ] Loading/success/error states (API: 2xx + stable error codes)
-- [ ] Responsive N/A (backend) — rate-limit + size-limit considered
-- [ ] Tests added + actually run (paste command + result in report)
-- [ ] No secrets committed
-- [ ] No unrelated files modified
+- [x] Requirement understood
+- [x] Existing code inspected
+- [x] Architecture respected (thin controller, logic in service)
+- [x] Input validation implemented
+- [x] Loading/success/error states (API: 2xx + stable error codes)
+- [x] Responsive N/A (backend) — rate-limit + size-limit considered
+- [x] Tests added + actually run (126/126, 11 files, live Neon)
+- [x] No secrets committed (`git ls-files`/`cat-file` verified: `.env` untracked + ignored; only `.env.example` committed)
+- [x] No unrelated files modified
 
 ## Suggested Build Order
 `001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013 → 014 → 015 → 016 → 017 → 018 → 019 → 020`
 
 Do not start TASK-007+ until TASK-005/006 are merged and verified.
+
+---
+
+## Phase 6 — Backend Tools Foundation (before any executor)
+
+Rule: SIMPLE tools (catalog A–D, H–L, Q–R) get registry rows only — zero backend endpoints (`06 §26`). One tool per task, tests green before next (`06 §39 Rule 1`).
+
+### TASK-100 — Tool registry migration to new architecture
+Files: `prisma/schema.prisma`, `src/modules/tools/tool-registry.ts`, `tools.service.ts`, `prisma/seed.ts`, `docs/API.md`
+- [x] Add to `Tool`: `implementation ("frontend"|"backend")`, `platforms`, `requiresFile`, `requiresAuth`, `supportsOffline`
+- [x] Re-tag existing 10 rows as `implementation:"frontend"`
+- [x] Verify: `prisma validate + migrate + seed`, `npm test` green
+
+### TASK-101 — GeneratedFile model + ToolHistory extension
+Files: `prisma/schema.prisma`
+- [x] Add `GeneratedFile`: fileId/userId/toolId/storageKey/mime/size/status/expiresAt (`06 §13`)
+- [x] Extend `ToolHistory` with `executionType/status/metadata` (keep existing columns)
+- [x] Verify: `prisma validate + migrate`, typecheck green
+
+### TASK-102 — Storage adapter + cleanup
+Files: `src/lib/storage.ts`, `src/lib/cleanup.ts`
+- [x] Local temp-file adapter behind an interface (no vendor lock); lifecycle expiry
+- [x] Verify: unit tests (put/get/expire, no path leakage)
+
+### TASK-103 — Per-tool scaffold + execute helper
+Files: `src/modules/tools/pdf|image|document|file/`, shared execute helper
+- [x] Folder per tool `{service,controller,routes,schema,test}` (`06 §10`); validate → temp id → process → result → cleanup
+- [x] Mount under `POST /api/v1/tools/<category>/<tool>`; document in `docs/API.md` + contract test
+- [x] Verify: typecheck + lint clean
+
+---
+
+## Phase 7 — Wave 1: prescribed backend tools (7)
+
+Per-tool checklist (each its own task): route + processor + Zod validation + file content checks + 413/400 codes + `GeneratedFile` row + registry `implementation:"backend"` + tests (valid, bad type, oversize, traversal) + seed + docs.
+
+### TASK-104 — PDF Merge → `POST /api/v1/tools/pdf/merge` (pdf-lib)
+- [ ] Implement + tests + seed + docs
+
+### TASK-105 — PDF Split → `POST /api/v1/tools/pdf/split` (pdf-lib)
+- [ ] Implement + tests + seed + docs
+
+### TASK-106 — PDF Compress → `POST /api/v1/tools/pdf/compress`
+- [ ] Implement + tests + seed + docs
+
+### TASK-107 — PDF to Word → `POST /api/v1/tools/pdf/to-word`
+- [ ] Spike conversion lib first (heaviest risk); then implement + tests + seed + docs
+
+### TASK-108 — Image Compressor → `POST /api/v1/tools/image/compress` (sharp)
+- [ ] Implement + tests + seed + docs
+
+### TASK-109 — Image Converter → `POST /api/v1/tools/image/convert` (sharp)
+- [ ] Implement + tests + seed + docs
+
+### TASK-110 — Word to PDF → `POST /api/v1/tools/document/to-pdf`
+- [ ] Implement + tests + seed + docs
+
+---
+
+## Phase 8 — Wave 2: catalog batches (one task per tool)
+
+### TASK-111 — F: PDF remaining (31)
+- [ ] to-JPG/PNG, JPG/PNG→PDF, HTML→PDF, Excel/PowerPoint↔PDF, OCR, text extract, metadata view/edit, protect/unlock, watermark, rotate, page delete/reorder/extract/duplicate, header/footer, numbering, sign, annotate, redact, flatten, repair, compare, search
+
+### TASK-112 — G: Documents remaining (19)
+- [ ] Word→TXT/HTML/Markdown, Excel→CSV/JSON, CSV→Excel/JSON, JSON→CSV, PPT→images, compressor, metadata viewer, TXT/Markdown→PDF/HTML, HTML→DOCX
+
+### TASK-113 — E: Image remaining (28)
+- [ ] Resizer, cropper, rotator, flipper, format batch (JPG↔PNG, WebP, HEIC, GIF), metadata viewer, EXIF remover, watermark, blur/sharpen/grayscale/color, background removal, upscaler, optimizer, image→PDF, ZIP, montage, favicon/social/passport generators
+
+### TASK-114 — M: File tools (15)
+- [ ] ZIP/TAR create/extract, compressor, metadata viewer, hash, type detector, rename, batch, merger, splitter, archive converter
+
+---
+
+## Phase 9 — Wave 3: infra-gated (build gate first, then tools)
+
+### TASK-115 — Job queue + worker + object storage (gate for N)
+- [ ] Async jobs per `06 §32`; then N Media (20): video/audio converters, trimmers, extractors, metadata, subtitles
+
+### TASK-116 — AI gateway + cost/abuse controls (gate for O)
+- [ ] Server-only keys, rate/usage limits, prompt-injection defenses; then O AI (20): summarizer → grammar → rewriter → translator → rest
+
+### TASK-117 — SSRF guard + fetch sandbox (gate for P)
+- [ ] Then P URL (14): shortener/expander, metadata, screenshot, status, DNS, SSL checks
+
+Total backend executors: 7 + 31 + 19 + 28 + 15 + 20 + 20 + 14 = **154**.

@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { env } from "./config/env.js";
 import { errorMiddleware, notFoundMiddleware } from "./middleware/error.middleware.js";
 import { globalLimiter } from "./middleware/rate-limit.middleware.js";
+import { adminRouter } from "./modules/admin/admin.routes.js";
 import { analyticsRouter } from "./modules/analytics/analytics.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { categoriesRouter } from "./modules/categories/categories.routes.js";
@@ -51,6 +52,7 @@ export function createApp() {
   v1.use("/analytics", analyticsRouter);
   v1.use("/subscriptions", subscriptionsRouter);
   v1.use("/files", filesRouter);
+  v1.use("/admin", adminRouter);
 
   app.use("/api/v1", v1);
 

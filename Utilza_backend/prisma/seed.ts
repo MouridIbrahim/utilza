@@ -16,6 +16,13 @@ const tools: Array<{
   categorySlug: string;
   icon: string;
   sortOrder: number;
+  // New-architecture classification; all 10 MVP tools are frontend tools.
+  // Optional here — the upsert below defaults them to frontend values.
+  implementation?: "frontend" | "backend";
+  platforms?: string[];
+  requiresFile?: boolean;
+  requiresAuth?: boolean;
+  supportsOffline?: boolean;
 }> = [
   {
     name: "Percentage Calculator",
@@ -118,6 +125,11 @@ async function main() {
         sortOrder: t.sortOrder,
         categoryId: category.id,
         isActive: true,
+        implementation: t.implementation ?? "frontend",
+        platforms: t.platforms ?? ["web", "mobile"],
+        requiresFile: t.requiresFile ?? false,
+        requiresAuth: t.requiresAuth ?? false,
+        supportsOffline: t.supportsOffline ?? true,
       },
       create: {
         name: t.name,
@@ -127,6 +139,11 @@ async function main() {
         sortOrder: t.sortOrder,
         categoryId: category.id,
         isActive: true,
+        implementation: t.implementation ?? "frontend",
+        platforms: t.platforms ?? ["web", "mobile"],
+        requiresFile: t.requiresFile ?? false,
+        requiresAuth: t.requiresAuth ?? false,
+        supportsOffline: t.supportsOffline ?? true,
       },
     });
   }
@@ -136,7 +153,6 @@ async function main() {
 
 main()
   .catch((e) => {
-    // eslint-disable-next-line no-console
     console.error(e);
     process.exit(1);
   })

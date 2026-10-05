@@ -32,6 +32,14 @@ export function requireAuth(req: AuthRequest, _res: Response, next: NextFunction
   }
 }
 
+// Ownership guard: compare a resource's owner id against the authenticated
+// user. List endpoints additionally scope queries by userId, so this is the
+// belt-and-braces check for single-resource routes.
+export function requireOwnership(resourceOwnerId: string, auth: AuthRequest): void {
+  if (!auth.user || auth.user.id !== resourceOwnerId)
+    throw forbidden("You do not own this resource.");
+}
+
 export function requireAdmin(req: AuthRequest, _res: Response, next: NextFunction): void {
   // Minimal admin gate: requires authenticated user whose email is in ADMIN_EMAILS.
   // Full AdminUser model is a future entity per 02-BACKEND.md:87.
