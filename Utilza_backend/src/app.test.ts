@@ -18,6 +18,7 @@ describe("health", () => {
   });
 });
 
+
 describe("tools registry (DB fallback)", () => {
   it("lists MVP tools", async () => {
     const res = await request(app).get("/api/v1/tools");
