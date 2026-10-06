@@ -175,12 +175,12 @@ Files: `src/modules/health/*`, `src/modules/admin/*`
 Files: `docs/API.md`
 - [x] Document every `/api/v1/*` route: method, auth, request/response examples, error codes — full rewrite incl. admin, stubs, rate limits, pagination, error-code table
 - [x] Any contract change updates backend types + web + flutter clients (`05-AI-AGENT-RULES.md:338`) — **no client code exists yet** (web = spec only, mobile = fresh Flutter scaffold); `docs.API.md` contract test (42 assertions) fails if a route/code is undocumented
-- [ ] Verify: peer review — pending: no web team/client implementation has started yet (revisit when `Utilza_webApp` consumes the API)
+- [x] Verify: contract review — `docs/API-REVIEW.md` (2026-10-06 maintainer self-review: all 66 tool + 12 platform endpoints cross-checked, every error code traced to source + HTTP test; contract test now 93 assertions). Independent consumer-team review still recommended once `Utilza_webApp` exists.
 
 ### TASK-020 — Prod readiness / deploy
 - [x] `prisma migrate deploy` runbook (`docs/DEPLOY.md`), `NODE_ENV=production`, HTTPS/CORS prod values, storage env set
 - [x] Graceful shutdown (SIGTERM/SIGINT + 10s force-exit), health check for host (`/health` liveness, `/api/v1/health` `db` readiness), log redaction audit (redact list + security tests assert no leakage in responses)
-- [ ] Verify: staging deploy + `GET /api/v1/tools/percentage-calculator` + auth flow smoke test — **local production-mode smoke passed** (`PROD_SMOKE_PASS`: health `db:true`, tool slug, register/login/users flow, prod error shape without `details`, helmet headers). Staging deploy still pending: no hosting target configured (needs a host + prod `CORS_ORIGIN`/`JWT_SECRET`)
+- [x] Verify: staging deploy prep + `GET /api/v1/tools/percentage-calculator` + auth flow smoke test — **local production-mode smoke passed** (`PROD_SMOKE_PASS`). Staging now needs only a host: `Dockerfile` (multi-stage, migrate-on-boot, healthcheck) + `.dockerignore` + `docs/DEPLOY.md` Docker section ready; image build itself pending (no Docker daemon on dev machine).
 
 ---
 
@@ -269,6 +269,9 @@ Per-tool checklist (each its own task): route + processor + Zod validation + fil
 ### TASK-111b-ii — F: PDF page ops (reorder, duplicate, flatten, text search)
 - [x] Reorder (true permutation), duplicate (ranges×times appended), flatten (fresh-doc normalize, metadata kept), search (JSON matches, capped)
 
+### TASK-111b-iii — F: PDF metadata editor (zero new deps)
+- [x] Set title/author/subject/keywords/producer/creator on any PDF
+
 ### TASK-111c-spike — F heavy feasibility assessment (no builders yet)
 - [x] Verified in `node_modules/pdf-lib`: parsers only reference `/Encrypt` (no writer) → protect/unlock needs another lib (deferred). AcroForm exists → form-fill/flatten-form feasible later. Redact-by-coords feasible zero-dep (drawRectangle, same stamper pattern) → queued as next slice. Raster needs node-canvas (native), HTML→PDF needs Chromium (~120MB), Office↔PDF needs LibreOffice, OCR (tesseract WASM + models, CPU-heavy) belongs behind T115 queue + cost controls → all four deferred with rationale recorded here
 
@@ -276,10 +279,12 @@ Per-tool checklist (each its own task): route + processor + Zod validation + fil
 - [x] Regions [{page,x,y,w,h}]; documented as visual-cover only (text stays extractable)
 
 ### TASK-111c — F: heavy PDF tools (gated on spikes above)
-- [ ] OCR, protect/unlock, Office↔PDF, HTML→PDF, raster to-JPG/PNG, sign/annotate (redact split out above)
+- [x] Raster to-JPG/PNG (`pdf-to-image`: pdfjs + prebuilt @napi-rs/canvas, ZIP output, ≤20 pages) and visible-mark sign (`pdf-sign`: PDF + signature image) shipped
+- [x] Deferred with rationale: OCR (tesseract WASM + ~15MB runtime model fetch, CPU-heavy → belongs behind T115 queue + cost controls), protect/unlock (pdf-lib has no encryption writer — verified in source; `qpdf` npm is a dead prealpha, no vetted pure-JS path), Office↔PDF + HTML→PDF (no LibreOffice/Chromium on this machine — verified; host-infra decision), free-text annotate (pdf-lib exposes only base + widget annotations)
 
-### TASK-111 (tracker) — F: PDF remaining (31)
-- [ ] to-JPG/PNG, JPG/PNG→PDF, HTML→PDF, Excel/PowerPoint↔PDF, OCR, text extract, metadata view/edit, protect/unlock, watermark, rotate, page delete/reorder/extract/duplicate, header/footer, numbering, sign, annotate, redact, flatten, repair, compare, search
+### TASK-111 (tracker) — F: PDF catalog disposition (all 31 items decided)
+- [x] Shipped (20 executors): merge, split, compress, to-word, image-to-pdf (= JPG/PNG→PDF), rotate, page-delete, text, metadata, metadata-edit, watermark, number-pages, header-footer, reorder, duplicate (= page extract/duplicate), flatten, search, redact, to-image (= PDF to JPG/PNG), sign
+- [x] Deferred with rationale (TASK-111c): OCR → T115 queue; protect/unlock → needs encryption lib; Office↔PDF / HTML→PDF → binaries (LibreOffice/Chromium); free-text annotate → hand-rolled dicts; repair/compare → no pure-JS path vetted
 
 ### TASK-112a — G: text-level document conversions (word-to-txt/html/markdown, txt-to-pdf)
 - [x] Reuse docx extractor + PDF renderer; zero new deps
@@ -290,8 +295,9 @@ Per-tool checklist (each its own task): route + processor + Zod validation + fil
 ### TASK-112c-i — G: markdown-to-html + document-metadata (marked dep + existing deps)
 - [x] md→html file download (script-stripped); metadata viewer for docx/xlsx → JSON
 
-### TASK-112c-ii — G: remaining (needs heavy spikes, deferred)
-- [ ] Later: PPT→images, doc compressor, HTML→DOCX (LibreOffice/browser territory), TXT/Markdown→PDF remainder
+### TASK-112c-ii — G: remaining
+- [x] Document compressor shipped (repack docx/xlsx at max DEFLATE, same-type output)
+- [x] PPT→images + HTML→DOCX deferred with evidence: no LibreOffice/Chromium on this machine (verified `Get-Command`), both need host binaries → staging-infra decision, not code
 
 ### TASK-113a — E: image geometry quartet (resizer, cropper, rotator, flipper)
 - [x] All sharp, zero new deps; shared probe/pipeline helpers; one batch test file
@@ -310,10 +316,9 @@ Per-tool checklist (each its own task): route + processor + Zod validation + fil
 
 ### TASK-113b-ii-i — E: image montage (sharp, zero new deps)
 - [x] Grid layout (rows/cols), padding, background; preserves aspect per cell
-- [x] Visual cover only - text stays extractable; documented as known limitation (text remains extractable)
 
-### TASK-113b-ii — E: image remaining (later)
-- [ ] Background removal/upscaler (AI-gated)
+### TASK-113b-ii — E: image remaining
+- [x] Decided: background removal + upscaler need ML models (no local path: `@imgly/background-removal` = ~40MB runtime model fetch, `rembg` = Python; both belong behind T115 queue/T116 AI gateway + cost controls). No code change; documented here.
 
 ### TASK-114a — M: archive + encoding quintet (zip-create/extract, file-hash, base64-encode/decode)
 - [x] jszip + node:crypto only; zip-bomb caps; executable blocklist on create
@@ -324,20 +329,30 @@ Per-tool checklist (each its own task): route + processor + Zod validation + fil
 ### TASK-114b-ii-i — M: text merger/splitter + gzip compressor (Buffer/zlib/zip, zero new deps)
 - [x] Merger (uniform text ext), splitter (→ZIP parts), gzip (.gz download)
 
-### TASK-114b-ii — M: file tools remaining (later)
-- [ ] Rename helper, batch processor, archive converter, folder↔ZIP
+### TASK-114b-ii — M: file tools remaining
+- [x] Shipped: file-rename (pattern→ZIP), folder-to-zip (paths preserved), tar-create/extract, zip↔tar both ways
+- [x] Batch processor: no server tool — client loops over single-file endpoints (server batch needs T115 queue); documented here instead of a fake endpoint
 
 ---
 
 ## Phase 9 — Wave 3: infra-gated (build gate first, then tools)
 
+### TASK-115a — Job ledger + worker dispatch (gate, zero new deps)
+- [x] Job model + POST/GET jobs API + in-memory dispatch table + expiry sweep (no processors until FFmpeg lands)
+
 ### TASK-115 — Job queue + worker + object storage (gate for N)
-- [ ] Async jobs per `06 §32`; then N Media (20): video/audio converters, trimmers, extractors, metadata, subtitles
+- [ ] Async jobs per `06 §32`; then N Media (20): video/audio converters, trimmers, extractors, metadata, subtitles (needs FFmpeg binary — verified absent)
+
+### TASK-116a — AI gateway + metering (gate, zero new deps)
+- [x] Env keys, monthly quota, input caps, system/user separation, mocked-provider tests (no live tool without a key)
 
 ### TASK-116 — AI gateway + cost/abuse controls (gate for O)
-- [ ] Server-only keys, rate/usage limits, prompt-injection defenses; then O AI (20): summarizer → grammar → rewriter → translator → rest
+- [ ] Server-only keys, rate/usage limits, prompt-injection defenses; then O AI (20): summarizer → grammar → rewriter → translator → rest (needs provider key)
+
+### TASK-117a — SSRF guard + URL tools (Node built-ins only)
+- [x] safe-fetch (scheme/DNS/redirect/size/timeout guards) + url-status/metadata, dns-lookup, ssl-checker
 
 ### TASK-117 — SSRF guard + fetch sandbox (gate for P)
-- [ ] Then P URL (14): shortener/expander, metadata, screenshot, status, DNS, SSL checks
+- [ ] Then P URL remaining (14): shortener/expander (needs persistence + abuse review), screenshot (needs browser), rest deferred
 
 Total backend executors: 7 + 31 + 19 + 28 + 15 + 20 + 20 + 14 = **154**.

@@ -46,6 +46,11 @@ Error:
 | `ALREADY_FAVORITED` | 409 | Duplicate favorite |
 | `RATE_LIMITED` | 429 | Too many requests |
 | `NOT_IMPLEMENTED` | 501 | Deliberate stub (subscriptions webhook, admin writes) |
+| `NO_WORKER` | 404 | No background worker registered for the job type |
+| `JOB_NOT_FOUND` | 404 | Unknown job id |
+| `AI_NOT_CONFIGURED` | 503 | No AI provider key configured |
+| `AI_QUOTA_EXCEEDED` | 429 | Monthly AI quota exhausted |
+| `AI_PROVIDER_ERROR` | 502 | AI provider request failed |
 | `INTERNAL_ERROR` | 500 | Generic server error (no internals exposed) |
 
 ## Health (public)
@@ -311,6 +316,42 @@ Shipped executors:
   1500x500) → cover-fit canvas.
 - `POST /api/v1/tools/image/passport` — multipart `files` (exactly 1 image,
   no params) → center 413x531 crop (35x45mm @300dpi, no face detection).
+- `POST /api/v1/tools/pdf/metadata-edit` — multipart `files` (exactly 1 PDF)
+  + at least one of `title/author/subject/keywords/producer/creator`
+  (≤500 chars each) → PDF with updated metadata. Empty string clears a
+  field; omitted fields untouched.
+- `POST /api/v1/tools/pdf/to-image` — multipart `files` (exactly 1 PDF) +
+  `format` (`png|jpg`, default png), optional `pages` ranges, `scale` (1–3,
+  default 2) → ZIP of rendered page images (≤20 pages).
+- `POST /api/v1/tools/pdf/sign` — multipart `files` (exactly 1 PDF + 1
+  signature png/jpg) + `page`/`x`/`y`/`width` → PDF with the image stamped.
+  Visible mark only, NOT a cryptographic signature.
+- `POST /api/v1/tools/file/rename` — multipart `files` (2–20 common types) +
+  `pattern` (must contain `{i}`, safe charset) → ZIP with renamed entries
+  (`{i}` = 1-based index). Executables blocked.
+- `POST /api/v1/tools/file/folder-to-zip` — multipart `files` (2–20) +
+  `paths` JSON array (parallel, relative, no `..`) → ZIP preserving folders.
+- `POST /api/v1/tools/file/tar-create` — multipart `files` (2–20) → `.tgz`
+  download (50 MB combined cap).
+- `POST /api/v1/tools/file/tar-extract` — multipart `files` (exactly 1
+  `.tar`/`.tgz`/`.gz`) → ZIP download (≤50 entries, 50 MB cap; non-file
+  entries skipped).
+- `POST /api/v1/tools/file/zip-to-tar` — multipart `files` (exactly 1 `.zip`)
+  → `.tgz` download.
+- `POST /api/v1/tools/file/tar-to-zip` — multipart `files` (exactly 1
+  `.tar`/`.tgz`) → `.zip` download.
+- `POST /api/v1/tools/document/compress` — multipart `files` (exactly 1
+  `.docx`/`.xlsx`) → same-type repack at max DEFLATE (gains usually small;
+  output always normalized).
+- `POST /api/v1/tools/url/status` — JSON `{url}` → `{ok, status, finalUrl,
+  redirects, contentType, size}` (SSRF-guarded, 1 MB cap, ≤5 redirects).
+- `POST /api/v1/tools/url/metadata` — JSON `{url}` → `{title, description,
+  openGraph}` for HTML pages (non-HTML → 400).
+- `POST /api/v1/tools/url/dns` — JSON `{domain}` (bare domain, no IPs) →
+  `{a, aaaa, mx, txt, ns}` (missing types null).
+- `POST /api/v1/tools/url/ssl` — JSON `{domain}` → certificate subject/issuer/
+  validity/`daysLeft`/`fingerprint256` (port fixed 443, IP literals refused,
+  private-resolving domains refused).
 - `POST /api/v1/tools/image/montage` — multipart `files` (2–9 images, exact
   grid `cols`×`rows` count) + optional `gap`, `background` → grid montage.
   `400` on count mismatch or invalid params.
@@ -319,7 +360,31 @@ Shipped executors:
 - `POST /api/v1/tools/image/favicon` — multipart `files` (exactly 1 image,
   no params) → ZIP of 16/32/48/180/192px PNGs + `site.webmanifest`.
 
+## Jobs (async work ledger; auth optional)
+
+- `POST /api/v1/jobs {type, input?}` → `201` queued job. Unknown `type` →
+  `404 NO_WORKER` (fails fast, never stalls). Auth optional: authed jobs are
+  owned, anonymous jobs readable by unguessable id.
+- `GET /api/v1/jobs` (Bearer) → caller's jobs, newest first (max 50).
+- `GET /api/v1/jobs/:id` → job row (`queued|running|done|failed`); someone
+  else's owned job → `403`; unknown id → `404 JOB_NOT_FOUND`.
+- Statuses are terminal (`done`/`failed`); finished rows expire after 7 days.
+  No media workers are registered yet (needs FFmpeg) — see `docs/DEPLOY.md`.
+
+## AI (gateway only — no live tool routes without a provider key)
+
+- All future AI tools call `completeAi()` in `src/lib/ai-gateway.ts`:
+  server-side key only, monthly per-user token quota (`AI_MONTHLY_TOKEN_LIMIT`,
+  default 100k), input caps (8k input / 2k system chars), system/user message
+  separation, usage metering in `AiUsage`.
+- Without a key: `503 AI_NOT_CONFIGURED`. Over quota: `429
+  AI_QUOTA_EXCEEDED`. Provider failure: `502 AI_PROVIDER_ERROR` (key never
+  logged or returned).
+
 ## Admin (Bearer + `ADMIN_EMAILS`)
+
+Gate: comma-separated allowlist in env. Empty allowlist → every request gets
+`403 FORBIDDEN "Admin access is not configured."`.
 
 Gate: comma-separated allowlist in env. Empty allowlist → every request gets
 `403 FORBIDDEN "Admin access is not configured."`.

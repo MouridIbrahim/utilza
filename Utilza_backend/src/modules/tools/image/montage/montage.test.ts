@@ -46,11 +46,8 @@ async function downloadMeta(fileId: string): Promise<Metadata> {
       res.on("data", (chunk) => chunks.push(chunk as Buffer));
       res.on("end", () => cb(null, Buffer.concat(chunks)));
     });
-  console.log("DOWNLOAD STATUS:", dl.status, "FILE ID:", fileId, "BODY LENGTH:", dl.body?.length);
   expect(dl.status).toBe(200);
-  const metadata = sharp(dl.body as Buffer).metadata();
-  console.log("SHARP METADATA:", JSON.stringify(await metadata, null, 2));
-  return metadata;
+  return sharp(dl.body as Buffer).metadata();
 }
 
 function track(res: { body: { data: { fileId: string } } }): void {
@@ -69,13 +66,10 @@ describe("POST /tools/image/montage", () => {
       .attach("files", await makePng({ r: 200, g: 200, b: 50 }), "d.png");
     expect(res.status).toBe(200);
     expect(res.body.data.mimeType).toBe("image/png");
-    console.log("FILE ID:", res.body.data.fileId);
     track(res);
     const meta = await downloadMeta(res.body.data.fileId as string);
-    console.log("META KEYS:", Object.keys(meta));
-    console.log("META:", JSON.stringify(meta, null, 2).slice(0, 500));
-    expect(meta.width).toBe(200);
-    expect(meta.height).toBe(200);
+    expect(meta.width).toBe(204); // 2*100 + default gap 4
+    expect(meta.height).toBe(204);
   });
 
   it("creates a 1x3 montage with custom gap and background", async () => {

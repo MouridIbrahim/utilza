@@ -1,24 +1,11 @@
-import { dirname, join } from "node:path";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { badRequest } from "../../../../utils/errors.js";
 import type { ToolFileInput, ToolProcessResult, ExecuteContext } from "../../execute/execute.js";
-import { loadPdf } from "../pdf-utils.js";
+import { loadPdf, standardFontDataUrl } from "../pdf-utils.js";
 import { pdfToWordConfig } from "./pdf-to-word.schema.js";
 
 export const WORD_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
-// Resolves to <pdfjs-dist>/standard_fonts/ in both src (tsx) and dist (tsc)
-// so production logs stay free of pdf.js font warnings. Falls back to
-// undefined (warning only — extraction still works) if unresolvable.
-function standardFontDataUrl(): string | undefined {
-  try {
-    const pkg = require.resolve("pdfjs-dist/package.json") as string;
-    return `${join(dirname(pkg), "standard_fonts")}/`;
-  } catch {
-    return undefined;
-  }
-}
 
 // Extracts printable text lines per page (1-based index preserved by order).
 export async function extractPdfText(buffer: Buffer): Promise<string[][]> {

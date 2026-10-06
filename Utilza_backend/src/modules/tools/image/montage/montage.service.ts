@@ -32,7 +32,6 @@ export async function montageImage(
   const metas = await Promise.all(
     inputs.map(async (input, i) => {
       const meta = await probeImage(input);
-      console.log(`META ${i}:`, meta);
       return { ...meta, index: i, ext: input.ext, buffer: input.buffer };
     }),
   );
@@ -41,7 +40,6 @@ export async function montageImage(
   const format = metas[0].format;
   const cellW = metas[0].width;
   const cellH = metas[0].height;
-  console.log("MONTAGE DEBUG:", { cols, rows, gap, background, cellW, cellH, format, metas: metas.map(m => ({ w: m.width, h: m.height, format: m.format })) });
 
   // Calculate canvas dimensions
   const totalWidth = cols * metas[0].width + (cols - 1) * gap;
@@ -73,6 +71,5 @@ export async function montageImage(
 
   const out = await base.composite(compositeOps).toFormat(format).toBuffer();
 
-  console.log("MONTAGE OUTPUT:", { size: out.length, format, ext: metas[0].ext });
   return { buffer: out, ext: metas[0].ext, mimeType: mimeFor(format) };
 }

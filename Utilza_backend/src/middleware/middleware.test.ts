@@ -6,6 +6,7 @@ import { validate } from "./validation.middleware.js";
 import {
   requireAuth,
   requireOwnership,
+  optionalAuth,
   signToken,
   verifyToken,
   type AuthRequest,
@@ -40,6 +41,10 @@ function makeTestApp() {
   );
 
   app.get("/protected", requireAuth, (req: AuthRequest, res) => res.json({ user: req.user }));
+
+  app.get("/maybe-protected", optionalAuth, (req: AuthRequest, res) =>
+    res.json({ user: req.user ?? null }),
+  );
 
   app.get("/limited", makeLimiter(60_000, 2, "Slow down."), (_req, res) => res.json({ ok: true }));
 
@@ -118,6 +123,29 @@ describe("auth middleware", () => {
 
   it("verifyToken rejects malformed tokens", () => {
     expect(() => verifyToken("not.a.jwt")).toThrow();
+  });
+});
+
+describe("optionalAuth middleware", () => {
+  const app = makeTestApp();
+
+  it("attaches the user when the token is valid", async () => {
+    const token = signToken("user-9", "u9@example.com");
+    const res = await request(app).get("/maybe-protected").set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.id).toBe("user-9");
+  });
+
+  it("stays anonymous without a token", async () => {
+    const res = await request(app).get("/maybe-protected");
+    expect(res.status).toBe(200);
+    expect(res.body.user).toBeNull();
+  });
+
+  it("stays anonymous with a garbage token (never 401)", async () => {
+    const res = await request(app).get("/maybe-protected").set("Authorization", "Bearer garbage");
+    expect(res.status).toBe(200);
+    expect(res.body.user).toBeNull();
   });
 });
 

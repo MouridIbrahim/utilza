@@ -12,6 +12,12 @@ const envSchema = z.object({
   STORAGE_BUCKET: z.string().optional().default(""),
   STORAGE_ACCESS_KEY: z.string().optional().default(""),
   STORAGE_SECRET_KEY: z.string().optional().default(""),
+  // AI provider (T116). Optional: gateway reports AI_NOT_CONFIGURED without
+  // a key instead of failing boot, so AI tools degrade honestly pre-launch.
+  AI_API_URL: z.string().optional().default(""),
+  AI_API_KEY: z.string().optional().default(""),
+  AI_MODEL: z.string().optional().default(""),
+  AI_MONTHLY_TOKEN_LIMIT: z.coerce.number().int().positive().default(100_000),
 });
 
 function buildEnv() {
@@ -35,6 +41,10 @@ function buildEnv() {
     STORAGE_BUCKET: process.env["STORAGE_BUCKET"] ?? "",
     STORAGE_ACCESS_KEY: process.env["STORAGE_ACCESS_KEY"] ?? "",
     STORAGE_SECRET_KEY: process.env["STORAGE_SECRET_KEY"] ?? "",
+    AI_API_URL: process.env["AI_API_URL"] ?? "",
+    AI_API_KEY: process.env["AI_API_KEY"] ?? "",
+    AI_MODEL: process.env["AI_MODEL"] ?? "",
+    AI_MONTHLY_TOKEN_LIMIT: process.env["AI_MONTHLY_TOKEN_LIMIT"] ?? "100000",
   };
 
   const parsed = envSchema.safeParse(raw);

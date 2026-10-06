@@ -31,9 +31,19 @@ import {
   wordToMarkdownRouter,
 } from "./document/word-convert.routes.js";
 import { txtToPdfRouter } from "./document/txt-to-pdf/txt-to-pdf.routes.js";
+import { urlStatusRouter, urlMetadataRouter, dnsRouter, sslRouter } from "./url/url.routes.js";
+import { documentCompressRouter } from "./document/compress/compress.routes.js";
 import { zipCreateRouter } from "./file/zip-create/zip-create.routes.js";
 import { zipExtractRouter } from "./file/zip-extract/zip-extract.routes.js";
 import { fileHashRouter } from "./file/hash/hash.routes.js";
+import {
+  renameRouter,
+  folderZipRouter,
+  tarCreateRouter,
+  tarExtractRouter,
+  zipToTarRouter,
+  tarToZipRouter,
+} from "./file/archive/archive.routes.js";
 import {
   textMergeRouter,
   textSplitRouter,
@@ -57,6 +67,7 @@ import { rotatePdfRouter } from "./pdf/rotate-pages/rotate-pages.routes.js";
 import { deletePagesRouter } from "./pdf/delete-pages/delete-pages.routes.js";
 import { extractTextRouter } from "./pdf/extract-text/extract-text.routes.js";
 import { pdfMetadataRouter } from "./pdf/metadata/metadata.routes.js";
+import { metadataEditRouter } from "./pdf/metadata-edit/metadata-edit.routes.js";
 import { watermarkRouter } from "./pdf/watermark/watermark.routes.js";
 import { numberPagesRouter } from "./pdf/number-pages/number-pages.routes.js";
 import { headerFooterRouter } from "./pdf/header-footer/header-footer.routes.js";
@@ -65,6 +76,8 @@ import { duplicatePagesRouter } from "./pdf/duplicate-pages/duplicate-pages.rout
 import { flattenPdfRouter } from "./pdf/flatten-pdf/flatten-pdf.routes.js";
 import { searchPdfRouter } from "./pdf/search-pdf/search-pdf.routes.js";
 import { redactRouter } from "./pdf/redact/redact.routes.js";
+import { rasterRouter } from "./pdf/to-image/to-image.routes.js";
+import { signRouter } from "./pdf/sign/sign.routes.js";
 import { socialRouter, passportRouter } from "./image/presets/presets.routes.js";
 import { montageRouter } from "./image/montage/montage.routes.js";
 
@@ -105,9 +118,20 @@ toolsRouter.use("/document/word-to-txt", wordToTxtRouter);
 toolsRouter.use("/document/word-to-html", wordToHtmlRouter);
 toolsRouter.use("/document/word-to-markdown", wordToMarkdownRouter);
 toolsRouter.use("/document/txt-to-pdf", txtToPdfRouter);
+toolsRouter.use("/url/status", urlStatusRouter);
+toolsRouter.use("/url/metadata", urlMetadataRouter);
+toolsRouter.use("/url/dns", dnsRouter);
+toolsRouter.use("/url/ssl", sslRouter);
+toolsRouter.use("/document/compress", documentCompressRouter);
 toolsRouter.use("/file/zip-create", zipCreateRouter);
 toolsRouter.use("/file/zip-extract", zipExtractRouter);
 toolsRouter.use("/file/hash", fileHashRouter);
+toolsRouter.use("/file/rename", renameRouter);
+toolsRouter.use("/file/folder-to-zip", folderZipRouter);
+toolsRouter.use("/file/tar-create", tarCreateRouter);
+toolsRouter.use("/file/tar-extract", tarExtractRouter);
+toolsRouter.use("/file/zip-to-tar", zipToTarRouter);
+toolsRouter.use("/file/tar-to-zip", tarToZipRouter);
 toolsRouter.use("/file/merge", textMergeRouter);
 toolsRouter.use("/file/split", textSplitRouter);
 toolsRouter.use("/file/compress", gzipRouter);
@@ -127,6 +151,7 @@ toolsRouter.use("/pdf/rotate", rotatePdfRouter);
 toolsRouter.use("/pdf/delete-pages", deletePagesRouter);
 toolsRouter.use("/pdf/text", extractTextRouter);
 toolsRouter.use("/pdf/metadata", pdfMetadataRouter);
+toolsRouter.use("/pdf/metadata-edit", metadataEditRouter);
 toolsRouter.use("/pdf/watermark", watermarkRouter);
 toolsRouter.use("/pdf/number-pages", numberPagesRouter);
 toolsRouter.use("/pdf/header-footer", headerFooterRouter);
@@ -135,6 +160,8 @@ toolsRouter.use("/pdf/duplicate", duplicatePagesRouter);
 toolsRouter.use("/pdf/flatten", flattenPdfRouter);
 toolsRouter.use("/pdf/search", searchPdfRouter);
 toolsRouter.use("/pdf/redact", redactRouter);
+toolsRouter.use("/pdf/to-image", rasterRouter);
+toolsRouter.use("/pdf/sign", signRouter);
 toolsRouter.use("/image/social", socialRouter);
 toolsRouter.use("/image/passport", passportRouter);
 toolsRouter.use("/image/montage", montageRouter);

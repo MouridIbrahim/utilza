@@ -33,6 +33,21 @@ npm start                    # node dist/server.js
 Never run `prisma migrate dev` against production (it can reset data);
 `prisma migrate deploy` only applies committed migrations.
 
+## Docker image (recommended for staging/prod)
+
+Build from `Utilza_backend/` (no Docker daemon on the current dev machine,
+so the image build itself is still pending a host with Docker):
+
+```bash
+docker build -t utilza-backend ./Utilza_backend
+docker run --env-file Utilza_backend/.env -p 4000:4000 utilza-backend
+```
+
+The image runs `prisma migrate deploy` on boot, then `node dist/server.js`;
+liveness is the Docker `HEALTHCHECK` on `GET /health`. Secrets come only
+from `--env-file` / the host secret store — never baked into the image
+(`.dockerignore` excludes `.env`).
+
 ## Health / readiness
 
 - Liveness: `GET /health` → 200 always once the process is up.

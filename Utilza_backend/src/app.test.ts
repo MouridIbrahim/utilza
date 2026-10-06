@@ -18,7 +18,6 @@ describe("health", () => {
   });
 });
 
-
 describe("tools registry (DB fallback)", () => {
   it("lists MVP tools", async () => {
     const res = await request(app).get("/api/v1/tools");
@@ -109,14 +108,30 @@ describe("tools registry (DB fallback)", () => {
       "pdf-redact",
       "image-social",
       "image-passport",
+      "pdf-metadata-edit",
+      "pdf-to-image",
+      "pdf-sign",
+      "file-rename",
+      "folder-to-zip",
+      "tar-create",
+      "tar-extract",
+      "zip-to-tar",
+      "tar-to-zip",
+      "document-compress",
+      "url-status",
+      "url-metadata",
+      "dns-lookup",
+      "ssl-check",
     ];
+    // URL tools take JSON bodies, not file uploads.
+    const fileless = new Set(["url-status", "url-metadata", "dns-lookup", "ssl-check"]);
     const frontend = items.filter((i) => !backendSlugs.includes(i["slug"] as string));
     expect(frontend.every((i) => i["implementation"] === "frontend")).toBe(true);
     // Backend executors (TASK-104+).
     for (const slug of backendSlugs) {
       const tool = items.find((i) => i["slug"] === slug);
       expect(tool?.["implementation"]).toBe("backend");
-      expect(tool?.["requiresFile"]).toBe(true);
+      expect(tool?.["requiresFile"]).toBe(!fileless.has(slug));
       expect(tool?.["supportsOffline"]).toBe(false);
     }
   });

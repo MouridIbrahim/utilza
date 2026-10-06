@@ -76,6 +76,20 @@ const ENDPOINTS = [
   "POST /api/v1/tools/pdf/redact",
   "POST /api/v1/tools/image/social",
   "POST /api/v1/tools/image/passport",
+  "POST /api/v1/tools/pdf/metadata-edit",
+  "POST /api/v1/tools/pdf/to-image",
+  "POST /api/v1/tools/pdf/sign",
+  "POST /api/v1/tools/file/rename",
+  "POST /api/v1/tools/file/folder-to-zip",
+  "POST /api/v1/tools/file/tar-create",
+  "POST /api/v1/tools/file/tar-extract",
+  "POST /api/v1/tools/file/zip-to-tar",
+  "POST /api/v1/tools/file/tar-to-zip",
+  "POST /api/v1/tools/document/compress",
+  "POST /api/v1/tools/url/status",
+  "POST /api/v1/tools/url/metadata",
+  "POST /api/v1/tools/url/dns",
+  "POST /api/v1/tools/url/ssl",
   "POST /api/v1/tools/image/montage",
   "POST /api/v1/tools/image/montage",
   "POST /api/v1/tools/image/exif-remove",
@@ -93,6 +107,9 @@ const ENDPOINTS = [
   "GET /api/v1/files/:fileId",
   "GET /api/v1/admin/tools",
   "GET /api/v1/admin/users",
+  "POST /api/v1/jobs",
+  "GET /api/v1/jobs",
+  "GET /api/v1/jobs/:id",
 ];
 
 const ERROR_CODES = [
@@ -112,6 +129,11 @@ const ERROR_CODES = [
   "RATE_LIMITED",
   "NOT_IMPLEMENTED",
   "INTERNAL_ERROR",
+  "NO_WORKER",
+  "JOB_NOT_FOUND",
+  "AI_NOT_CONFIGURED",
+  "AI_QUOTA_EXCEEDED",
+  "AI_PROVIDER_ERROR",
 ];
 
 describe("docs/API.md contract coverage", () => {

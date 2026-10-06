@@ -1,4 +1,5 @@
 import { PDFDocument, PDFFont, PDFPage, degrees } from "pdf-lib";
+import { join, dirname } from "node:path";
 import { badRequest } from "../../../utils/errors.js";
 
 const PDF_MAGIC = Buffer.from("%PDF-");
@@ -8,6 +9,20 @@ const PDF_MAGIC = Buffer.from("%PDF-");
 export function extOf(filename: string): string {
   const parts = filename.toLowerCase().split(".");
   return parts.length > 1 ? (parts[parts.length - 1] as string) : "";
+}
+
+// Resolves to <pdfjs-dist>/standard_fonts/ in both src (tsx) and dist (tsc)
+// so production logs stay free of pdf.js font warnings. Falls back to
+// undefined (warning only — extraction still works) if unresolvable.
+export function standardFontDataUrl(): string | undefined {
+  try {
+    const pkg = require.resolve("pdfjs-dist/package.json") as string;
+    // Forward slashes: pdf.js validates this as a URL-like factory path,
+    // and Windows backslashes are rejected ("must include trailing slash").
+    return `${join(dirname(pkg), "standard_fonts").replace(/\\/g, "/")}/`;
+  } catch {
+    return undefined;
+  }
 }
 
 // Shared PDF loading with uniform validation: magic bytes + parse.

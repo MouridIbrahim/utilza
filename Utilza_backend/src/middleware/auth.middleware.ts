@@ -32,6 +32,30 @@ export function requireAuth(req: AuthRequest, _res: Response, next: NextFunction
   }
 }
 
+// Attaches the user when a valid Bearer token is present; otherwise leaves
+// the request anonymous WITHOUT failing. For resources readable by
+// unguessable id (jobs), with ownership checks applied downstream.
+export function optionalAuth(req: AuthRequest, _res: Response, next: NextFunction): void {
+  try {
+    const header = req.headers.authorization;
+    if (!header?.startsWith("Bearer ")) {
+      next();
+      return;
+    }
+    const token = header.slice("Bearer ".length).trim();
+    if (!token) {
+      next();
+      return;
+    }
+    const payload = verifyToken(token);
+    req.user = { id: payload.sub, email: payload.email };
+  } catch {
+    // Invalid token on an optionally-authed route: stay anonymous.
+    // Protected data still requires ownership below.
+  }
+  next();
+}
+
 // Ownership guard: compare a resource's owner id against the authenticated
 // user. List endpoints additionally scope queries by userId, so this is the
 // belt-and-braces check for single-resource routes.

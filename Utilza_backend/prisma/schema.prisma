@@ -105,6 +105,37 @@ model GeneratedFile {
   @@index([toolSlug])
 }
 
+// Async job ledger for long-running work (T115, 06 §32: media, OCR, batch).
+// Processors register in the worker dispatch table; the DB row is the
+// source of truth clients poll. No processors ship yet (needs FFmpeg).
+model Job {
+  id        String   @id @default(cuid())
+  type      String   @db.VarChar(64)
+  status    String   @default("queued") @db.VarChar(16) // queued|running|done|failed
+  userId    String?
+  input     Json?
+  output    Json?
+  error     String?  @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+// Monthly AI usage metering per user (T116). Enforced by the AI gateway
+// before any provider call; anonymous callers share one bucket.
+model AiUsage {
+  id     String @id @default(cuid())
+  userId String @db.VarChar(64)
+  month  String @db.VarChar(7) // YYYY-MM
+  calls  Int    @default(0)
+  tokens Int    @default(0)
+
+  @@unique([userId, month])
+}
+
 model Subscription {
   id        String   @id @default(cuid())
   userId    String   @unique
