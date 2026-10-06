@@ -1,0 +1,23 @@
+# deps / build
+node_modules/
+dist/
+dist-ssr/
+
+# vite / logs
+*.local
+*.log
+
+# env overrides (keep .env + .env.example committed, ignore local overrides)
+.env.local
+.env.*.local
+
+# editor / os
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
