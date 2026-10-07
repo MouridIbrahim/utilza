@@ -11,6 +11,13 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem('utilza.theme') || 'light';
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light';
+      }
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

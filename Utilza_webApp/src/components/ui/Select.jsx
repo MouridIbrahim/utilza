@@ -1,7 +1,7 @@
-import { useId } from 'react';
+import { forwardRef, useId } from 'react';
 import { cn } from '../../utils/cn.js';
 
-export function Select({ label, error, hint, className, id, children, ...rest }) {
+export const Select = forwardRef(function Select({ label, error, hint, className, id, children, ...rest }, ref) {
   const autoId = useId();
   const fieldId = id || autoId;
   const errId = error ? `${fieldId}-error` : undefined;
@@ -13,6 +13,7 @@ export function Select({ label, error, hint, className, id, children, ...rest })
         </label>
       )}
       <select
+        ref={ref}
         id={fieldId}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={errId}
@@ -31,4 +32,4 @@ export function Select({ label, error, hint, className, id, children, ...rest })
       )}
     </div>
   );
-}
+});

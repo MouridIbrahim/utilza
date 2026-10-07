@@ -1,7 +1,7 @@
-import { useId } from 'react';
+import { forwardRef, useId } from 'react';
 import { cn } from '../../utils/cn.js';
 
-export function Textarea({ label, error, hint, className, id, rows = 4, ...rest }) {
+export const Textarea = forwardRef(function Textarea({ label, error, hint, className, id, rows = 4, ...rest }, ref) {
   const autoId = useId();
   const fieldId = id || autoId;
   const errId = error ? `${fieldId}-error` : undefined;
@@ -13,6 +13,7 @@ export function Textarea({ label, error, hint, className, id, rows = 4, ...rest 
         </label>
       )}
       <textarea
+        ref={ref}
         id={fieldId}
         rows={rows}
         aria-invalid={error ? 'true' : undefined}
@@ -30,4 +31,4 @@ export function Textarea({ label, error, hint, className, id, rows = 4, ...rest 
       )}
     </div>
   );
-}
+});

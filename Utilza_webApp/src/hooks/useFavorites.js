@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { normalizeError } from '../lib/api-client.js';
 import { queryKeys } from '../app/query-client.js';
+import { trackEvent } from '../services/analytics-service.js';
 import { useSessionStore } from '../stores/session.js';
 import { addFavorite, getFavorites, removeFavorite } from '../services/favorites-service.js';
 import { useToastStore } from '../components/feedback/ToastRegion.jsx';
@@ -61,7 +62,8 @@ export function useToggleFavorite() {
       }
       toast({ tone: 'error', message: err?.message || 'Could not update favorite.' });
     },
-    onSuccess: (_data, { favorited }) => {
+    onSuccess: (_data, { favorited, toolSlug }) => {
+      if (toolSlug) trackEvent('tool_favorited', toolSlug);
       toast({
         tone: 'success',
         message: favorited ? 'Removed from favorites.' : 'Saved to favorites.',

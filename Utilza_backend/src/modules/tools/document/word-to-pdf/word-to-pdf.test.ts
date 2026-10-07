@@ -135,6 +135,36 @@ describe("POST /tools/document/to-pdf", () => {
     expect(res.body.error.message).toContain("Exactly one Word document");
   });
 
+  it("renders emoji covered by the font instead of a 500", async () => {
+    const res = await request(app)
+      .post("/tools/document/to-pdf")
+      .attach("files", await makeDocx(["Hello \uD83D\uDE00"]), "uni.docx");
+    expect(res.status).toBe(200);
+    createdFileIds.push(res.body.data.fileId as string);
+  });
+
+  it("renders Latin-extended, Greek, Cyrillic and symbols", async () => {
+    const res = await request(app)
+      .post("/tools/document/to-pdf")
+      .attach(
+        "files",
+        await makeDocx(["“Smart quotes” — dashes • bullets → arrows", "мир Γεια café"]),
+        "intl.docx",
+      );
+    expect(res.status).toBe(200);
+    createdFileIds.push(res.body.data.fileId as string);
+    const text = await pdfText(res.body.data.fileId as string);
+    expect(text).toContain("мир");
+  });
+
+  it("400 for CJK text", async () => {
+    const res = await request(app)
+      .post("/tools/document/to-pdf")
+      .attach("files", await makeDocx(["Hello 中文"]), "cjk.docx");
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toContain("cannot render");
+  });
+
   it("400 for non-zip bytes", async () => {
     const res = await request(app)
       .post("/tools/document/to-pdf")

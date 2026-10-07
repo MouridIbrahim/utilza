@@ -9,7 +9,7 @@ export function CategoryChip({ slug, name, active, to }) {
       className={cn(
         'whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium',
         active
-          ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+          ? 'btn-primary border-transparent'
           : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-subtle)]',
       )}
     >

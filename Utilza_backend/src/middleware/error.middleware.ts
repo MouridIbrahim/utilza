@@ -58,6 +58,9 @@ export function errorMiddleware(
       route: req.originalUrl,
       status,
       code,
+      // Stack traces stay server-side, only for unexpected 5xx, and only
+      // outside production. 4xx rejections are routine client errors.
+      ...(status >= 500 && env.NODE_ENV !== "production" && err.stack ? { stack: err.stack } : {}),
     },
     err.message,
   );

@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { GlobalHeader } from './GlobalHeader.jsx';
 import { Footer } from './Footer.jsx';
+import { SearchPalette } from '../../features/search/components/SearchPalette.jsx';
 
 export function AppShell({ aside }) {
   return (
@@ -17,6 +18,7 @@ export function AppShell({ aside }) {
         </main>
       </div>
       <Footer />
+      <SearchPalette />
     </div>
   );
 }

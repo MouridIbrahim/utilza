@@ -1,7 +1,10 @@
-import { useId } from 'react';
+import { forwardRef, useId } from 'react';
 import { cn } from '../../utils/cn.js';
 
-export function Input({ label, error, hint, className, id, ...rest }) {
+// forwardRef: react-hook-form's register() attaches a ref that MUST reach the
+// native input, otherwise field values never enter form state and submit-time
+// validation reports them as missing even when visibly filled.
+export const Input = forwardRef(function Input({ label, error, hint, className, id, ...rest }, ref) {
   const autoId = useId();
   const fieldId = id || autoId;
   const errId = error ? `${fieldId}-error` : undefined;
@@ -14,6 +17,7 @@ export function Input({ label, error, hint, className, id, ...rest }) {
         </label>
       )}
       <input
+        ref={ref}
         id={fieldId}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={[errId, hintId].filter(Boolean).join(' ') || undefined}
@@ -32,4 +36,4 @@ export function Input({ label, error, hint, className, id, ...rest }) {
       )}
     </div>
   );
-}
+});

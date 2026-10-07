@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { env } from "./config/env.js";
 import { errorMiddleware, notFoundMiddleware } from "./middleware/error.middleware.js";
 import { globalLimiter } from "./middleware/rate-limit.middleware.js";
+import { requestLogMiddleware } from "./middleware/request-log.middleware.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
 import { jobsRouter } from "./modules/jobs/jobs.routes.js";
 import { analyticsRouter } from "./modules/analytics/analytics.routes.js";
@@ -37,6 +38,7 @@ export function createApp() {
     (req as typeof req & { id?: string }).id = randomUUID();
     next();
   });
+  app.use(requestLogMiddleware);
 
   app.get("/health", (_req, res) => {
     res.json({ success: true, data: { status: "ok", uptime: process.uptime() } });

@@ -3,10 +3,12 @@ import { BrowserRouter } from 'react-router-dom';
 import { queryClient } from './query-client.js';
 import { ErrorBoundary } from '../components/feedback/ErrorBoundary.jsx';
 import { ToastRegion } from '../components/feedback/ToastRegion.jsx';
+import { ThemeEffect } from '../stores/theme.js';
 
 export function AppProviders({ children }) {
   return (
     <BrowserRouter>
+      <ThemeEffect />
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <a

@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { Input } from '../../../components/ui/Input.jsx';
 
-export function PasswordField({ label = 'Password', error, ...rest }) {
+export const PasswordField = forwardRef(function PasswordField({ label = 'Password', error, ...rest }, ref) {
   const [show, setShow] = useState(false);
   return (
     <div className="flex flex-col gap-1">
       <Input
+        ref={ref}
         label={label}
         type={show ? 'text' : 'password'}
         autoComplete={rest.autoComplete || 'current-password'}
@@ -22,4 +23,4 @@ export function PasswordField({ label = 'Password', error, ...rest }) {
       </button>
     </div>
   );
-}
+});

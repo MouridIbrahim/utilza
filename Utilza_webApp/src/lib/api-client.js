@@ -2,6 +2,12 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
+export { API_BASE_URL };
+
+export function backendHealthUrl() {
+  return `${API_BASE_URL.replace(/\/+$/, '')}/health`;
+}
+
 // Backend envelope: { success:true, data } / { success:false, error:{code,message,details?} }
 export function normalizeError(err) {
   if (err?.response) {

@@ -39,7 +39,7 @@ export function Pagination({ page, limit, total, onChange }) {
               aria-label={`Page ${p}`}
               className={`rounded-[10px] px-3 py-1.5 text-sm ${
                 p === safePage
-                  ? 'bg-[var(--color-primary)] font-semibold text-white'
+                  ? 'btn-primary font-semibold'
                   : 'border border-[var(--color-border)]'
               }`}
             >

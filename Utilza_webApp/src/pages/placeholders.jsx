@@ -4,7 +4,7 @@ import { Seo } from '../components/seo/Seo.jsx';
 
 function placeholder(to, label) {
   return (
-    <a href={to} className="rounded-[10px] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white">
+    <a href={to} className="btn-primary rounded-[10px] px-4 py-2 text-sm font-semibold">
       {label}
     </a>
   );

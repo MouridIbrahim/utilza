@@ -1,4 +1,4 @@
-import { apiClient, unwrap, normalizeError } from '../lib/api-client.js';
+import { apiClient, unwrap, normalizeError, API_BASE_URL } from '../lib/api-client.js';
 
 // Unified executor for POST /tools/<family>/<tool>.
 // - file tools: multipart FormData, field name `files` (backend multer expects `files`).
@@ -29,10 +29,22 @@ export function isDownloadResult(data) {
   return !!data && typeof data.downloadUrl === 'string';
 }
 
+// Backend download URLs already contain the API prefix (e.g.
+// `/api/v1/files/<id>`), so they must NOT go through the axios baseURL join
+// (that produced `/api/v1/api/v1/files/<id>` → 404 → "Download failed").
+// Resolve against the API origin instead: dev proxy origin in development,
+// API host origin when VITE_API_BASE_URL is absolute.
+export function absoluteDownloadUrl(downloadUrl) {
+  if (/^https?:\/\//i.test(downloadUrl)) return downloadUrl;
+  const origin = new URL(API_BASE_URL, window.location.origin).origin;
+  return `${origin}${downloadUrl.startsWith('/') ? '' : '/'}${downloadUrl}`;
+}
+
 // Fetch a short-lived result attachment as a Blob. Never persist the URL.
 export async function downloadBlob(downloadUrl, signal) {
   try {
-    const res = await apiClient.get(downloadUrl, {
+    // Absolute URL → axios leaves baseURL out of the request.
+    const res = await apiClient.get(absoluteDownloadUrl(downloadUrl), {
       responseType: 'blob',
       signal,
     });

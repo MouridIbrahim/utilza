@@ -1,23 +1,26 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { trackEvent } from '../../services/analytics-service.js';
 
 export function GlobalSearch({ autoFocus }) {
   const navigate = useNavigate();
   const [value, setValue] = useState('');
+  const inputId = useId();
 
   function submit(e) {
     e.preventDefault();
     const q = value.trim().slice(0, 100);
+    if (q) trackEvent('search_performed');
     navigate(q ? `/tools?search=${encodeURIComponent(q)}` : '/tools');
   }
 
   return (
     <form role="search" onSubmit={submit} className="flex w-full max-w-md gap-2">
-      <label htmlFor="global-search" className="sr-only">
+      <label htmlFor={inputId} className="sr-only">
         Search tools
       </label>
       <input
-        id="global-search"
+        id={inputId}
         type="search"
         value={value}
         autoFocus={autoFocus}
@@ -28,7 +31,7 @@ export function GlobalSearch({ autoFocus }) {
       />
       <button
         type="submit"
-        className="rounded-[10px] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
+        className="btn-primary rounded-[10px] px-4 py-2 text-sm font-semibold"
       >
         Search
       </button>

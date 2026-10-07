@@ -54,10 +54,10 @@ export function AuthGate() {
 
   if (meQuery.isLoading && !user) {
     return (
-      <main aria-label="Checking session" className="flex flex-col gap-3">
+      <div aria-label="Checking session" className="flex flex-col gap-3">
         <Skeleton className="h-10 w-48" />
         <Skeleton className="h-32 w-full" />
-      </main>
+      </div>
     );
   }
 

@@ -11,7 +11,7 @@ export function Tabs({ tabs, active, onChange, label }) {
             onClick={() => onChange?.(t.id)}
             className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold ${
               selected
-                ? 'bg-[var(--color-primary)] text-white'
+                ? 'btn-primary'
                 : 'hover:bg-[var(--color-surface-subtle)]'
             }`}
           >

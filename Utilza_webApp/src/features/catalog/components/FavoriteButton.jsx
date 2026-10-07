@@ -18,7 +18,7 @@ export function FavoriteButton({ toolId, toolSlug, size = 18 }) {
       return;
     }
     if (!toolId || toggle.isPending) return;
-    toggle.mutate({ toolId, favorited });
+    toggle.mutate({ toolId, favorited, toolSlug });
   }
 
   return (

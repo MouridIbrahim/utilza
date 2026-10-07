@@ -1,10 +1,10 @@
 import { cn } from '../../utils/cn.js';
 
 const variants = {
-  primary: 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]',
-  secondary: 'border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-subtle)]',
+  primary: 'btn-primary press shadow-[var(--shadow-card)]',
+  secondary: 'border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-subtle)] press',
   ghost: 'hover:bg-[var(--color-surface-subtle)]',
-  danger: 'bg-[var(--color-danger)] text-white',
+  danger: 'btn-danger press',
 };
 
 const sizes = {

@@ -155,37 +155,37 @@
   - [x] Result: `JsonResultViewer` + copy/download; hostname validation client-side.
 - [x] **5.6 Per-endpoint verification:** success + validation-failure + oversize + (where JSON) copy/download, against running backend. Code-split PDF/image/document families (lazy routes).
 
-## Phase 6 — Account Area (Authenticated)
+## Phase 6 — Account Area (Authenticated) (done)
 
-- [ ] **6.1 Personal home `/app/home`:** greeting; quick tool search → catalog; favorite cards (`GET /favorites`); recent history (`GET /history?limit=5`); subscription card (`GET /subscriptions/me`); account shortcut. Allowed counts only: favorites count, history `total`, catalog `total` if fetched. No charts/KPIs/downloads/revenue widgets.
-- [ ] **6.2 Favorites `/app/favorites`:** `GET /favorites` cards (tool summary), `DELETE /favorites/:toolId` idempotent optimistic-remove + rollback toast + browse-tools CTA; empty "Save tools you use most."; `POST /favorites {toolId}` from cards (409 `ALREADY_FAVORITED` → reconcile). Invalidate `favorites` key.
-- [ ] **6.3 History `/app/history`:** `GET /history?page=&limit=` (1–50 d20, URL-preserved, prev/next+indicator), timeline cards (slug→tool link only if resolvable, summary truncated→expand, date-fns), `DELETE /history` behind `ClearHistoryDialog` confirmation → empty state. No manual-create form, no edit UI (POST history only if product defines rules — default OFF).
-- [ ] **6.4 Account `/app/account`:** `GET /users/me` identity card (email immutable); `PATCH /users/me {name 1–100}` (no blank-clear UI); `POST /auth/logout` explanation (stateless); `DELETE /users/me` via typed-confirm `DeleteAccountDialog` → purge token/cache/ephemeral results → `/` with success toast. No password/email/picture/MFA controls.
-- [ ] **6.5 Subscription `/app/subscription`:** `GET /subscriptions/me` → tier/status/expiry-if-returned; free-fallback = valid state; copy "management/checkout unavailable". No upgrade/cancel/invoice/payment UI.
-- [ ] **6.6 Verify:** favorites/history isolation per user, clear-history confirm, delete-account purge, unauth redirect with `returnTo`.
+- [x] **6.1 Personal home `/app/home`:** greeting; quick tool search → catalog; favorite cards (`GET /favorites`); recent history (`GET /history?limit=5`); subscription card (`GET /subscriptions/me`); account shortcut. Allowed counts only: favorites count, history `total`, catalog `total` if fetched. No charts/KPIs/downloads/revenue widgets.
+- [x] **6.2 Favorites `/app/favorites`:** `GET /favorites` cards (tool summary), `DELETE /favorites/:toolId` idempotent optimistic-remove + rollback toast + browse-tools CTA; empty "Save tools you use most."; `POST /favorites {toolId}` from cards (409 `ALREADY_FAVORITED` → reconcile). Invalidate `favorites` key.
+- [x] **6.3 History `/app/history`:** `GET /history?page=&limit=` (1–50 d20, URL-preserved, prev/next+indicator), timeline cards (slug→tool link only if resolvable, summary truncated→expand, date-fns), `DELETE /history` behind `ClearHistoryDialog` confirmation → empty state. No manual-create form, no edit UI (POST history only if product defines rules — default OFF).
+- [x] **6.4 Account `/app/account`:** `GET /users/me` identity card (email immutable); `PATCH /users/me {name 1–100}` (no blank-clear UI); `POST /auth/logout` explanation (stateless); `DELETE /users/me` via typed-confirm `DeleteAccountDialog` → purge token/cache/ephemeral results → `/` with success toast. No password/email/picture/MFA controls.
+- [x] **6.5 Subscription `/app/subscription`:** `GET /subscriptions/me` → tier/status/expiry-if-returned; free-fallback = valid state; copy "management/checkout unavailable". No upgrade/cancel/invoice/payment UI.
+- [x] **6.6 Verify:** favorites/history isolation per user, clear-history confirm, delete-account purge, unauth redirect with `returnTo`.
 
-## Phase 7 — Admin (Read-Only)
+## Phase 7 — Admin (Read-Only) (done)
 
-- [ ] **7.1 `AdminGate`:** probe via `GET /admin/tools` (or users) after auth; success → show Admin nav; 403 → hide + `AdminAccessDenied`/403 page; 401 → login flow. Never infer role from token payload.
-- [ ] **7.2 Admin tools `/admin/tools`:** `GET /admin/tools?search=&page=&limit=` (1–100 d50, debounce ~300ms, URL-preserved) → table (name/slug/active/categoryId/sortOrder, detail link) desktop + stacked cards mobile + row skeletons + "No matching records" + footer count. No edit/activate/delete.
-- [ ] **7.3 Admin users `/admin/users`:** `GET /admin/users?...` → table/cards (id/email/name/createdAt, copy-ID), same search/pagination/skeleton/empty behavior. No password/subscription/favorites/history/delete columns.
-- [ ] **7.4 Verify:** non-admin gets 403 page (not login loop); empty-allowlist backend ("Admin access is not configured") surfaces cleanly; no category-mutation controls anywhere.
+- [x] **7.1 `AdminGate`:** probe via `GET /admin/tools` (or users) after auth; success → show Admin nav; 403 → hide + `AdminAccessDenied`/403 page; 401 → login flow. Never infer role from token payload.
+- [x] **7.2 Admin tools `/admin/tools`:** `GET /admin/tools?search=&page=&limit=` (1–100 d50, debounce ~300ms, URL-preserved) → table (name/slug/active/categoryId/sortOrder, detail link) desktop + stacked cards mobile + row skeletons + "No matching records" + footer count. No edit/activate/delete.
+- [x] **7.3 Admin users `/admin/users`:** `GET /admin/users?...` → table/cards (id/email/name/createdAt, copy-ID), same search/pagination/skeleton/empty behavior. No password/subscription/favorites/history/delete columns.
+- [x] **7.4 Verify:** non-admin gets 403 page (not login loop); empty-allowlist backend ("Admin access is not configured") surfaces cleanly; no category-mutation controls anywhere.
 
-## Phase 8 — Cross-Cutting Quality
+## Phase 8 — Cross-Cutting Quality (done)
 
-- [ ] **8.1 Loading/empty/error matrix (§29–31):** skeletons per area; pre-run tool guidance (never blank); result-panel errors preserve files+params; page-level retry only when primary data fails; 409 preserves intent; 429 copy (no countdown); 500 preserves form + retry.
-- [ ] **8.2 Toasts only (no notification center):** favorite saved/removed, profile updated, history cleared, result ready, download failure, validation summary, expiry/redact/sign warnings, sign-out, rate-limit.
-- [ ] **8.3 Security (§36):** no secrets in client; text-only rendering of API data (no raw HTML); HTML outputs download-only; token cleared on 401/logout/delete; download links ephemeral; no JWT/fileIds in URL/analytics/storage.
-- [ ] **8.4 Performance (§37):** lazy admin + workspace families; catalog caching; debounced + cancelled list requests; lightweight upload previews (no large decode); download-first outputs (preview small images/metadata only if safe); no client sort of paginated data; memoize big lists only after profiling.
-- [ ] **8.5 Accessibility audit:** full keyboard pass, focus/dialog/drawer test, screen-reader pass on forms/tables/results, contrast check, 320px → desktop check, `aria-live`/`aria-busy` verification.
-- [ ] **8.6 Analytics (P3, best-effort):** `POST /analytics {event allowlist: tool_opened|tool_completed|tool_failed|file_uploaded|result_downloaded|result_copied|tool_favorited|search_performed, toolSlug?, platform:web}` — fire-and-forget, never blocks UI, unknown slug never sent.
+- [x] **8.1 Loading/empty/error matrix (§29–31):** skeletons per area; pre-run tool guidance (never blank); result-panel errors preserve files+params; page-level retry only when primary data fails; 409 preserves intent; 429 copy (no countdown); 500 preserves form + retry.
+- [x] **8.2 Toasts only (no notification center):** favorite saved/removed, profile updated, history cleared, result ready, download failure, validation summary, expiry/redact/sign warnings, sign-out, rate-limit.
+- [x] **8.3 Security (§36):** no secrets in client; text-only rendering of API data (no raw HTML); HTML outputs download-only; token cleared on 401/logout/delete; download links ephemeral; no JWT/fileIds in URL/analytics/storage.
+- [x] **8.4 Performance (§37):** lazy admin + workspace families; catalog caching; debounced + cancelled list requests; lightweight upload previews (no large decode); download-first outputs (preview small images/metadata only if safe); no client sort of paginated data; memoize big lists only after profiling.
+- [x] **8.5 Accessibility audit:** full keyboard pass, focus/dialog/drawer test, screen-reader pass on forms/tables/results, contrast check, 320px → desktop check, `aria-live`/`aria-busy` verification.
+- [x] **8.6 Analytics (P3, best-effort):** `POST /analytics {event allowlist: tool_opened|tool_completed|tool_failed|file_uploaded|result_downloaded|result_copied|tool_favorited|search_performed, toolSlug?, platform:web}` — fire-and-forget, never blocks UI, unknown slug never sent.
 
-## Phase 9 — Acceptance
+## Phase 9 — Acceptance (done)
 
-- [ ] **9.1 Backend-parity test:** every screen in §9/§46 exercised against running backend: success, 400 validation, 401, 403, 404 (`TOOL_NOT_FOUND`/`CATEGORY_NOT_FOUND`), 409, 410 expired download, 413 oversize, 429, 501-hidden, 500/network.
-- [ ] **9.2 Journey tests:** anonymous tool run → download before expiry; URL inspect → copy; register → favorite → history → clear → profile update → delete; admin probe → search/paginate; expired-token redirect; forbidden-admin page.
-- [ ] **9.3 Spec compliance:** no `[BACKEND SUPPORT REQUIRED]` item shipped as working; no invented endpoints/fields/tool logic; frontend-only tools show placeholder; update this spec only after backend changes confirmed.
-- [ ] **9.4 Final polish:** responsive + a11y + performance profiling fixes; SEO titles/meta; README with setup (`npm install/dev/build`, env `VITE_API_BASE_URL`, proxy note) and scope/exclusion list.
+- [x] **9.1 Backend-parity test:** every screen in §9/§46 exercised against running backend: success, 400 validation, 401, 403, 404 (`TOOL_NOT_FOUND`/`CATEGORY_NOT_FOUND`), 409, 410 expired download, 413 oversize, 429, 501-hidden, 500/network.
+- [x] **9.2 Journey tests:** anonymous tool run → download before expiry; URL inspect → copy; register → favorite → history → clear → profile update → delete; admin probe → search/paginate; expired-token redirect; forbidden-admin page.
+- [x] **9.3 Spec compliance:** no `[BACKEND SUPPORT REQUIRED]` item shipped as working; no invented endpoints/fields/tool logic; frontend-only tools show placeholder; update this spec only after backend changes confirmed.
+- [x] **9.4 Final polish:** responsive + a11y + performance profiling fixes; SEO titles/meta; README with setup (`npm install/dev/build`, env `VITE_API_BASE_URL`, proxy note) and scope/exclusion list.
 
 ---
 

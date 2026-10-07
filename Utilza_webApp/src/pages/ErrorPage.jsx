@@ -36,14 +36,14 @@ const pages = {
 export function ErrorPage({ code }) {
   const page = pages[code] || pages[404];
   return (
-    <main className="mx-auto max-w-xl px-4 py-16 text-center">
+    <div className="mx-auto max-w-xl px-4 py-16 text-center">
       <p className="font-mono text-sm text-[var(--color-text-muted)]">{code}</p>
       <h1 className="mt-2 text-2xl font-bold">{page.title}</h1>
       <p className="mt-2 text-[var(--color-text-muted)]">{page.hint}</p>
       <div className="mt-6 flex justify-center gap-3">
         <Link
           to={page.primary.to}
-          className="rounded-[10px] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
+          className="btn-primary rounded-[10px] px-4 py-2 text-sm font-semibold"
         >
           {page.primary.label}
         </Link>
@@ -54,6 +54,6 @@ export function ErrorPage({ code }) {
           Browse tools
         </Link>
       </div>
-    </main>
+    </div>
   );
 }

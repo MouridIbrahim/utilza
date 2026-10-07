@@ -481,7 +481,7 @@ export const TOOL_DEFINITIONS = {
     files: { min: 1, max: 1, accept: ['.docx'], maxSize: PER_FILE_BYTES },
     fields: [],
     result: 'download',
-    warnings: ['Extracted/re-rendered text — tables, images, and columns are not preserved. Latin scripts only.'],
+    warnings: ['Extracted/re-rendered text — tables, images, and columns are not preserved. Only Latin, Greek, Cyrillic and common symbols render; other characters are rejected.'],
     helper: 'Converts Word text into a PDF (max 2000 paragraphs).',
   },
   'word-to-txt': {
@@ -517,7 +517,7 @@ export const TOOL_DEFINITIONS = {
     files: { min: 1, max: 1, accept: ['.txt'], maxSize: PER_FILE_BYTES },
     fields: [],
     result: 'download',
-    warnings: [],
+    warnings: ['Only Latin, Greek, Cyrillic and common symbols render — other characters are rejected.'],
     helper: 'Renders a UTF-8 text file (max 2000 lines) as a paginated PDF.',
   },
   'excel-to-csv': {

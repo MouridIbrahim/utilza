@@ -44,10 +44,10 @@ export function AdminGate() {
 
   if (probe.isLoading) {
     return (
-      <main aria-label="Checking admin access" className="flex flex-col gap-3">
+      <div aria-label="Checking admin access" className="flex flex-col gap-3">
         <Skeleton className="h-10 w-48" />
         <Skeleton className="h-48 w-full" />
-      </main>
+      </div>
     );
   }
 

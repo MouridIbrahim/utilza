@@ -67,7 +67,7 @@ export function HistoryTimeline({ data, isLoading }) {
         action={
           <Link
             to="/tools"
-            className="rounded-[10px] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
+            className="btn-primary rounded-[10px] px-4 py-2 text-sm font-semibold"
           >
             Browse tools
           </Link>

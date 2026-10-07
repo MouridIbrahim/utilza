@@ -1,5 +1,7 @@
-import { PDFDocument, StandardFonts, type PDFFont } from "pdf-lib";
+import { PDFDocument, type PDFFont } from "pdf-lib";
+import * as fontkit from "@pdf-lib/fontkit";
 import JSZip from "jszip";
+import { readFile } from "node:fs/promises";
 import { badRequest } from "../../../../utils/errors.js";
 import type { ToolFileInput, ToolProcessResult, ExecuteContext } from "../../execute/execute.js";
 import { wordToPdfConfig } from "./word-to-pdf.schema.js";
@@ -77,9 +79,57 @@ function wrapLine(line: string, font: PDFFont, maxWidth: number): string[] {
 
 // Renders paragraphs into paginated PDF bytes. Shared by word-to-pdf and
 // txt-to-pdf (and later markdown-to-pdf).
+//
+// Uses an embedded DejaVu Sans subset (Latin, Greek, Cyrillic, common
+// symbols/arrows) instead of WinAnsi-only Helvetica, so real-world documents
+// convert instead of crashing. Emoji, CJK and complex scripts have no glyphs
+// and still fail as a 400 via the pre-flight below.
+let cachedSansFont: Buffer | null = null;
+let supportedCodePoints: Set<number> | null = null;
+
+async function loadSansFont(): Promise<Buffer> {
+  if (!cachedSansFont) {
+    // No "exports" map in dejavu-fonts-ttf, so a file subpath resolves.
+    const fontPath = require.resolve("dejavu-fonts-ttf/ttf/DejaVuSans.ttf");
+    cachedSansFont = await readFile(fontPath);
+  }
+  return cachedSansFont;
+}
+
+async function loadFontCoverage(): Promise<Set<number>> {
+  if (!supportedCodePoints) {
+    supportedCodePoints = new Set(fontkit.create(await loadSansFont()).characterSet);
+  }
+  return supportedCodePoints;
+}
+
 export async function renderParagraphsToPdf(paras: string[]): Promise<Buffer> {
   const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  pdf.registerFontkit(fontkit);
+  const font = await pdf.embedFont(await loadSansFont(), { subset: true });
+  // Reject characters the font cannot draw (emoji, CJK, complex scripts):
+  // the embedder would silently render them as blank .notdef glyphs.
+  // The message names the first offending code points so users can find
+  // and remove them.
+  const supported = await loadFontCoverage();
+  const missing: string[] = [];
+  for (const para of paras) {
+    for (const ch of para) {
+      const cp = ch.codePointAt(0) as number;
+      if (cp === 0x0a || cp === 0x0d) continue;
+      if (!supported.has(cp)) {
+        const label = `U+${cp.toString(16).toUpperCase().padStart(4, "0")}`;
+        if (!missing.includes(label)) missing.push(label);
+        if (missing.length >= 5) break;
+      }
+    }
+    if (missing.length >= 5) break;
+  }
+  if (missing.length > 0) {
+    throw badRequest(
+      `Document contains characters this converter cannot render (${missing.join(", ")}). Only Latin, Greek, Cyrillic and common symbols are supported.`,
+    );
+  }
   const maxWidth = PAGE_WIDTH - MARGIN * 2;
   let page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   let y = PAGE_HEIGHT - MARGIN;

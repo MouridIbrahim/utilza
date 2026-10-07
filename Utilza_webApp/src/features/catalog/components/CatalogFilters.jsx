@@ -48,7 +48,7 @@ export function CatalogFilters({ categories, search, category, onSearch, onCateg
           aria-pressed={!category}
           className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium ${
             !category
-              ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+              ? 'btn-primary border-transparent'
               : 'border-[var(--color-border)] bg-[var(--color-surface)]'
           }`}
         >
@@ -62,7 +62,7 @@ export function CatalogFilters({ categories, search, category, onSearch, onCateg
             aria-pressed={category === c.slug}
             className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium ${
               category === c.slug
-                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                ? 'btn-primary border-transparent'
                 : 'border-[var(--color-border)] bg-[var(--color-surface)]'
             }`}
           >

@@ -8,7 +8,7 @@ export function ErrorPanel({ title, message, onRetry }) {
           <button
             type="button"
             onClick={onRetry}
-            className="rounded-[10px] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
+            className="btn-primary rounded-[10px] px-4 py-2 text-sm font-semibold"
           >
             Retry
           </button>

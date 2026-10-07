@@ -5,6 +5,7 @@ import { Seo } from '../components/seo/Seo.jsx';
 import { Card } from '../components/ui/Card.jsx';
 import { ErrorPanel } from '../components/feedback/ErrorPanel.jsx';
 import { CardSkeletonGrid } from '../components/feedback/Skeleton.jsx';
+import { API_BASE_URL, backendHealthUrl } from '../lib/api-client.js';
 import { useCategoriesQuery, useToolsQuery } from '../hooks/useCatalogQueries.js';
 import { CategoryRail } from '../features/catalog/components/CategoryChip.jsx';
 import { ToolGrid } from '../features/catalog/components/ToolGrid.jsx';
@@ -76,6 +77,16 @@ export function LandingPage() {
           <li>PDF signing stamps a visible mark — it is not a cryptographic signature.</li>
           <li>Word/PDF conversions carry text across; layout is not preserved.</li>
         </ul>
+        <p className="mt-3 text-sm">
+          <a
+            href={backendHealthUrl()}
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold text-[var(--color-primary)] underline"
+          >
+            Backend API ({API_BASE_URL})
+          </a>
+        </p>
       </Card>
     </div>
   );

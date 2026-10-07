@@ -1,11 +1,13 @@
 import { cn } from '../../utils/cn.js';
 
 const tones = {
-  neutral: 'bg-[var(--color-surface-subtle)] text-[var(--color-text)]',
-  info: 'bg-[#e3ecff] text-[#1d4ed8]',
-  success: 'bg-[#dff5e5] text-[#15803d]',
-  warning: 'bg-[#fdeecd] text-[#b45309]',
-  danger: 'bg-[#fbe0e0] text-[#b91c1c]',
+  neutral: 'bg-[var(--color-neutral-soft)] text-[var(--color-text)]',
+  info: 'bg-[var(--color-info-soft)] text-[var(--color-info)]',
+  success: 'bg-[var(--color-success-soft)] text-[var(--color-success)]',
+  warning: 'bg-[var(--color-warning-soft)] text-[var(--color-warning)]',
+  danger: 'bg-[var(--color-danger-soft)] text-[var(--color-danger)]',
+  primary: 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]',
+  accent: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]',
 };
 
 export function Badge({ tone = 'neutral', className, children, ...rest }) {

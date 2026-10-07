@@ -22,7 +22,7 @@ import { RelatedTools } from '../features/tool-workspace/components/RelatedTools
 import { FileDropzone } from '../features/tool-workspace/components/FileDropzone.jsx';
 import { FileQueue } from '../features/tool-workspace/components/FileQueue.jsx';
 import { ToolParameterForm, UrlInputForm } from '../features/tool-workspace/components/ToolParameterForm.jsx';
-import { FrontendToolPlaceholder } from '../features/tool-workspace/components/FrontendToolPlaceholder.jsx';
+import { LocalToolBody } from '../features/local-tools/components/LocalToolBody.jsx';
 import { ToolResultPanel } from '../features/tool-workspace/components/ToolResultPanel.jsx';
 import { categorySlugOf } from '../features/catalog/components/ToolBadgeSet.jsx';
 import { ErrorPage } from './ErrorPage.jsx';
@@ -75,7 +75,7 @@ export function ToolWorkspacePage() {
       />
       <ToolHero tool={tool} />
       {isFrontendTool(tool) ? (
-        <FrontendToolPlaceholder tool={tool} />
+        <LocalToolBody tool={tool} />
       ) : (
         <WorkspaceBody tool={tool} />
       )}
@@ -195,6 +195,7 @@ function WorkspaceBody({ tool }) {
                     const merged = [...files, ...picked].slice(0, (def.files?.max || 20) + 5);
                     setFiles(merged);
                     setFileProblems(validateFiles(def, merged));
+                    if (picked.length > 0) trackEvent('file_uploaded', tool.slug);
                   }}
                 />
                 <div className="flex items-center justify-between text-[13px] text-[var(--color-text-muted)]">

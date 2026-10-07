@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component {
           <div className="mt-6 flex justify-center gap-3">
             <button
               type="button"
-              className="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
+              className="btn-primary rounded px-4 py-2"
               onClick={() => window.location.reload()}
             >
               Retry

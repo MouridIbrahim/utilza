@@ -82,7 +82,7 @@ export function CatalogPage() {
               <button
                 type="button"
                 onClick={() => update({ search: '', category: '', page: '1' })}
-                className="rounded-[10px] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
+                className="btn-primary rounded-[10px] px-4 py-2 text-sm font-semibold"
               >
                 Clear filters
               </button>
