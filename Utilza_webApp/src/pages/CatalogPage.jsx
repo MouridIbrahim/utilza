@@ -53,15 +53,17 @@ export function CatalogPage() {
         title="Browse tools"
         description="Search the catalog, filter by category, and open a tool workspace."
       />
-      <CatalogFilters
-        categories={categories.data?.items}
-        search={search}
-        category={category}
-        resultCount={typeof tools.data?.total === 'number' ? tools.data.total : undefined}
-        onSearch={(v) => update({ search: v.slice(0, 100), page: '1' })}
-        onCategory={(v) => update({ category: v, page: '1' })}
-        onClear={() => update({ search: '', category: '', page: '1' })}
-      />
+      <div className="sticky top-16 z-30 -mx-4 border-b border-[var(--color-border)] bg-[var(--color-canvas)]/95 px-4 py-3 backdrop-blur">
+        <CatalogFilters
+          categories={categories.data?.items}
+          search={search}
+          category={category}
+          resultCount={typeof tools.data?.total === 'number' ? tools.data.total : undefined}
+          onSearch={(v) => update({ search: v.slice(0, 100), page: '1' })}
+          onCategory={(v) => update({ category: v, page: '1' })}
+          onClear={() => update({ search: '', category: '', page: '1' })}
+        />
+      </div>
 
       {showSkeleton && <CardSkeletonGrid count={6} />}
 

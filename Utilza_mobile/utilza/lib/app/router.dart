@@ -3,13 +3,25 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/models/models.dart';
 import '../../core/widgets/common.dart';
+import '../../features/admin/presentation/admin_tools_screen.dart';
+import '../../features/admin/presentation/admin_users_screen.dart';
+import '../../features/tools/domain/backend_tool_configs.dart';
+import '../../features/tools/domain/url_tool_config.dart';
+import '../../features/tools/presentation/backend_executor_screen.dart';
+import '../../features/tools/presentation/url_executor_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/catalogue/presentation/home_screen.dart';
 import '../../features/catalogue/presentation/search_screen.dart';
 import '../../features/categories/presentation/category_screen.dart';
+import '../../features/favorites/presentation/favorites_screen.dart';
+import '../../features/history/presentation/history_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/subscription/presentation/subscription_screen.dart';
+import '../../features/tools/presentation/local_executor_screen.dart';
 import '../../features/tools/presentation/tool_detail_screen.dart';
+import 'shell.dart';
 
 /// Route names/paths. Public routes stay reachable without auth;
 /// guarded routes redirect to /login when unauthenticated.
@@ -27,9 +39,13 @@ abstract final class AppRoutes {
   static const subscription = '/subscription';
   static const adminTools = '/admin/tools';
   static const adminUsers = '/admin/users';
+  static const localExecutor = '/tool/:slug/local';
+  static const backendExecutor = '/tool/:slug/run';
 
   static String categoryWith(String slug) => '/category/$slug';
   static String toolWith(String slug) => '/tool/$slug';
+  static String localWith(String slug) => '/tool/$slug/local';
+  static String runWith(String slug) => '/tool/$slug/run';
 }
 
 GoRouter buildRouter({
@@ -59,9 +75,50 @@ GoRouter buildRouter({
         path: AppRoutes.splash,
         builder: (c, s) => const SplashScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.home,
-        builder: (c, s) => const HomeScreen(),
+      StatefulShellRoute.indexedStack(
+        builder: (c, s, shell) => MainShell(navigationShell: shell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.home,
+                builder: (c, s) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.search,
+                builder: (c, s) => const SearchScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.favorites,
+                builder: (c, s) => const FavoritesScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.history,
+                builder: (c, s) => const HistoryScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.profile,
+                builder: (c, s) => const ProfileScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: '/category/:slug',
@@ -70,8 +127,40 @@ GoRouter buildRouter({
         ),
       ),
       GoRoute(
-        path: AppRoutes.search,
-        builder: (c, s) => const SearchScreen(),
+        path: '/tool/:slug/local',
+        builder: (c, s) {
+          final extra = s.extra;
+          return LocalExecutorScreen(
+            slug: s.pathParameters['slug'] ?? '',
+            initial: extra is Tool ? extra : null,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/tool/:slug/run',
+        builder: (c, s) {
+          final extra = s.extra;
+          final slug = s.pathParameters['slug'] ?? '';
+          final tool = extra is Tool ? extra : null;
+          if (tool == null) {
+            return const PlaceholderScreen(
+              title: 'Online tool',
+              detail: 'Tool unavailable.',
+            );
+          }
+          final config = BackendToolConfigs.lookup(slug);
+          if (config != null) {
+            return BackendExecutorScreen(tool: tool, config: config);
+          }
+          final urlConfig = UrlToolConfigs.lookup(slug);
+          if (urlConfig != null) {
+            return UrlExecutorScreen(tool: tool, config: urlConfig);
+          }
+          return const PlaceholderScreen(
+            title: 'Online tool',
+            detail: 'BACKEND CONTRACT MISSING for this tool.',
+          );
+        },
       ),
       GoRoute(
         path: '/tool/:slug',
@@ -93,45 +182,27 @@ GoRouter buildRouter({
       ),
       GoRoute(
         path: AppRoutes.profile,
-        builder: (c, s) => const PlaceholderScreen(
-          title: 'Profile',
-          detail: 'Profile — Phase 6.',
-        ),
+        builder: (c, s) => const ProfileScreen(),
       ),
       GoRoute(
         path: AppRoutes.favorites,
-        builder: (c, s) => const PlaceholderScreen(
-          title: 'Favorites',
-          detail: 'Favorites — Phase 6.',
-        ),
+        builder: (c, s) => const FavoritesScreen(),
       ),
       GoRoute(
         path: AppRoutes.history,
-        builder: (c, s) => const PlaceholderScreen(
-          title: 'History',
-          detail: 'History — Phase 6.',
-        ),
+        builder: (c, s) => const HistoryScreen(),
       ),
       GoRoute(
         path: AppRoutes.subscription,
-        builder: (c, s) => const PlaceholderScreen(
-          title: 'Subscription',
-          detail: 'Subscription (read-only) — Phase 6.',
-        ),
+        builder: (c, s) => const SubscriptionScreen(),
       ),
       GoRoute(
         path: AppRoutes.adminTools,
-        builder: (c, s) => const PlaceholderScreen(
-          title: 'Admin tools',
-          detail: 'Optional read-only admin — Phase 12.',
-        ),
+        builder: (c, s) => const AdminToolsScreen(),
       ),
       GoRoute(
         path: AppRoutes.adminUsers,
-        builder: (c, s) => const PlaceholderScreen(
-          title: 'Admin users',
-          detail: 'Optional read-only admin — Phase 12.',
-        ),
+        builder: (c, s) => const AdminUsersScreen(),
       ),
     ],
     errorBuilder: (c, s) => Scaffold(

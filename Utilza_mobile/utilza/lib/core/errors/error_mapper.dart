@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import '../constants/error_codes.dart';
@@ -66,6 +68,25 @@ abstract final class ErrorMapper {
     }
   }
 
+  /// Download errors arrive as raw bytes (ResponseType.bytes), so a
+  /// JSON error envelope must be decoded before falling back to
+  /// status-based codes. Preserves 410 FILE_EXPIRED / 404 codes.
+  static ApiException fromDownloadError(DioException e) {
+    final response = e.response;
+    final data = response?.data;
+    if (response != null && data is List<int>) {
+      try {
+        final decoded = jsonDecode(utf8.decode(data));
+        if (decoded is Map<String, dynamic>) {
+          return fromResponse(response.statusCode, decoded);
+        }
+      } catch (_) {
+        // Fall through to status-based mapping below.
+      }
+    }
+    return fromDio(e);
+  }
+
   static String _codeFor(int? status) {
     switch (status) {
       case 400:
@@ -123,9 +144,15 @@ abstract final class ErrorMapper {
     }
   }
 
+  /// Display-safe message for any failure. Raw exception strings
+  /// (e.g. `ApiException(...)`) must never reach the UI.
+  static String displayMessage(Object e) {
+    if (e is ApiException) return userMessage(e);
+    return 'Something went wrong. Please try again.';
+  }
+
   /// User-facing message. Never leaks stack traces / JWTs.
-  static String userMessage(ApiException e) {
-    switch (e.code) {
+  static String userMessage(ApiException e) {    switch (e.code) {
       case ErrorCodes.validationError:
         return e.message;
       case ErrorCodes.unauthorized:

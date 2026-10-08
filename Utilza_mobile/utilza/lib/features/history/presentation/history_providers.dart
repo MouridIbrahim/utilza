@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/error_mapper.dart';
 import '../../../core/models/models.dart';
 import '../../../core/network/providers.dart';
 import '../data/history_remote_datasource.dart';
@@ -53,7 +54,7 @@ class HistoryController extends Notifier<HistoryState> {
         total: page.total,
       );
     } catch (e) {
-      state = HistoryState(errorMessage: e.toString());
+      state = HistoryState(errorMessage: ErrorMapper.displayMessage(e));
     }
   }
 
@@ -88,7 +89,7 @@ class HistoryController extends Notifier<HistoryState> {
         page: state.page,
         limit: state.limit,
         total: state.total,
-        errorMessage: e.toString(),
+        errorMessage: ErrorMapper.displayMessage(e),
       );
     }
   }

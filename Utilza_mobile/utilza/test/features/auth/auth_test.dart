@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -329,4 +332,71 @@ void main() {
       expect(repo.logouts, 0); // sanity: fake unused here
     });
   });
+
+  group('provider wiring: 401 clears the stored token', () {
+    test('expired GET /auth/me deletes token + drops auth state', () async {
+      final storage = FakeTokenStorage()..token = 'expired';
+      final dio = Dio(BaseOptions(baseUrl: 'https://example.com/api/v1'));
+      dio.httpClientAdapter = _UnauthorizedAdapter();
+      late final ProviderContainer c;
+      c = ProviderContainer(
+        overrides: [
+          secureTokenStorageProvider.overrideWithValue(storage),
+        ],
+      );
+      addTearDown(c.dispose);
+      final client = ApiClient(
+        dio: dio,
+        getToken: storage.readToken,
+        onUnauthorized: () async {
+          await storage.deleteToken();
+          c
+              .read(authControllerProvider.notifier)
+              .setStatus(AuthStatus.unauthenticated);
+        },
+      );
+      // Seed an authenticated session, then hit the expired token.
+      c
+          .read(authControllerProvider.notifier)
+          .setStatus(AuthStatus.authenticated);
+      final repo = AuthRepositoryImpl(
+        AuthRemoteDataSource(client),
+        storage,
+      );
+      await expectLater(
+        repo.getMe(),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            401,
+          ),
+        ),
+      );
+      expect(storage.token, isNull);
+      expect(storage.deletes, 1);
+      expect(
+        c.read(authControllerProvider).status,
+        AuthStatus.unauthenticated,
+      );
+    });
+  });
+}
+
+class _UnauthorizedAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    return ResponseBody.fromString(
+      '{"success":false,"error":{"code":"UNAUTHORIZED","message":"expired"}}',
+      401,
+      headers: {Headers.contentTypeHeader: [Headers.jsonContentType]},
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

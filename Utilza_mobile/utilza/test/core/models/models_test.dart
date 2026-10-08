@@ -175,6 +175,16 @@ void main() {
     test('URL results', () {
       final st = UrlStatusResult.fromJson({'url': 'https://x', 'ok': true});
       expect(st.ok, isTrue);
+      expect(st.redirects, isEmpty);
+
+      final chained = UrlStatusResult.fromJson({
+        'url': 'https://x',
+        'ok': true,
+        'status': 200,
+        'redirects': ['https://x/', 'https://x/home'],
+      });
+      expect(chained.redirectCount, 2);
+      expect(chained.redirects.last, 'https://x/home');
 
       final md = UrlMetadataResult.fromJson({'url': 'https://x'});
       expect(md.title, isNull);

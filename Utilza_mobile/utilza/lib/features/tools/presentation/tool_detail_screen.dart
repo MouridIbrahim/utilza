@@ -1,12 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../../../core/constants/analytics_events.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/models/models.dart';
 import '../../../core/widgets/common.dart';
+import '../../../design/icon_mapper.dart';
+import '../../../design/widgets/icon_tile.dart';
 import '../../catalogue/presentation/catalogue_providers.dart';
+
+class _DetailIcon extends StatelessWidget {
+  const _DetailIcon({required this.tool});
+  final Tool tool;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconTile(
+      icon: toolIconFor(
+        iconKey: tool.icon,
+        categorySlug: tool.category?.slug,
+      ),
+      categorySlug: tool.category?.slug,
+      size: 56,
+      semanticLabel: '${tool.name} icon',
+    );
+  }
+}
 
 /// Tool detail. Routes by `implementation`: frontend → local executor
 /// (Phase 7), backend → backend executor (Phase 8). Never derives an
@@ -79,6 +101,14 @@ class _DetailBody extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Hero(
+            tag: 'tool-${tool.id}',
+            child: Material(
+              type: MaterialType.transparency,
+              child: _DetailIcon(tool: tool),
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(tool.description),
           const SizedBox(height: 16),
           Wrap(
@@ -100,10 +130,9 @@ class _DetailBody extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Local executor lands in Phase 7.'),
-                ),
+              onPressed: () => context.push(
+                AppRoutes.localWith(tool.slug),
+                extra: tool,
               ),
               child: const Text('Open local tool'),
             ),
@@ -111,10 +140,9 @@ class _DetailBody extends StatelessWidget {
             const Text('This tool runs on the Utilza server.'),
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Backend executor lands in Phase 8.'),
-                ),
+              onPressed: () => context.push(
+                AppRoutes.runWith(tool.slug),
+                extra: tool,
               ),
               child: const Text('Open tool'),
             ),

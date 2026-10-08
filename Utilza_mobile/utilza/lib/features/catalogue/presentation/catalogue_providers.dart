@@ -1,20 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/error_mapper.dart';
 import '../../../core/models/models.dart';
 import '../../../core/network/providers.dart';
-import '../../analytics/data/analytics_remote_datasource.dart';
 import '../data/catalogue_remote_datasource.dart';
 import '../data/catalogue_repository_impl.dart';
 import '../domain/catalogue_repository.dart';
+
+// Re-exported so existing screens keep a single import.
+export '../../analytics/presentation/analytics_providers.dart';
 
 final catalogueRepositoryProvider = Provider<CatalogueRepository>((ref) {
   final remote =
       CatalogueRemoteDataSource(ref.watch(apiClientProvider));
   return CatalogueRepositoryImpl(remote);
-});
-
-final analyticsProvider = Provider<AnalyticsRemoteDataSource>((ref) {
-  return AnalyticsRemoteDataSource(ref.watch(apiClientProvider));
 });
 
 class ToolsState {
@@ -97,7 +96,7 @@ class ToolsController extends Notifier<ToolsState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: ErrorMapper.displayMessage(e));
     }
   }
 
@@ -126,7 +125,7 @@ class ToolsController extends Notifier<ToolsState> {
         isLoadingMore: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoadingMore: false, errorMessage: e.toString());
+      state = state.copyWith(isLoadingMore: false, errorMessage: ErrorMapper.displayMessage(e));
     }
   }
 

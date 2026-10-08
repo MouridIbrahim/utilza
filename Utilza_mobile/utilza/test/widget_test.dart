@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:utilza/app/app.dart';
 import 'package:utilza/core/models/models.dart';
 import 'package:utilza/core/network/providers.dart';
@@ -43,15 +45,23 @@ class _EmptyCatalogue implements CatalogueRepository {
 }
 
 void main() {
+  // Inter loads over HTTP at runtime; disable fetching in widget tests so
+  // no pending timers outlive the test (documented google_fonts practice).
+  GoogleFonts.config.allowRuntimeFetching = false;
   testWidgets('UtilzaApp boots to splash', (WidgetTester tester) async {
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          secureTokenStorageProvider.overrideWithValue(_EmptyStorage()),
-          categoryRepositoryProvider.overrideWithValue(_EmptyCategories()),
-          catalogueRepositoryProvider.overrideWithValue(_EmptyCatalogue()),
-        ],
-        child: const UtilzaApp(),
+      // Reduced motion: shimmer loops (flutter_animate timers) stay out of
+      // the tree so the boot assertion isn't blocked by pending timers.
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: ProviderScope(
+          overrides: [
+            secureTokenStorageProvider.overrideWithValue(_EmptyStorage()),
+            categoryRepositoryProvider.overrideWithValue(_EmptyCategories()),
+            catalogueRepositoryProvider.overrideWithValue(_EmptyCatalogue()),
+          ],
+          child: UtilzaApp(),
+        ),
       ),
     );
     // Splash shows indeterminate progress; don't pumpAndSettle.

@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/analytics_events.dart';
 import '../../../core/errors/api_exception.dart';
+import '../../../core/errors/error_mapper.dart';
 import '../../../core/models/models.dart';
 import '../../../core/network/providers.dart';
+import '../../analytics/presentation/analytics_providers.dart';
 import '../data/favorite_remote_datasource.dart';
 import '../data/favorite_repository_impl.dart';
 import '../domain/favorite_repository.dart';
@@ -39,7 +42,7 @@ class FavoritesController extends Notifier<FavoritesState> {
       final items = await ref.read(favoriteRepositoryProvider).getFavorites();
       state = FavoritesState(items: items);
     } catch (e) {
-      state = FavoritesState(errorMessage: e.toString());
+      state = FavoritesState(errorMessage: ErrorMapper.displayMessage(e));
     }
   }
 
@@ -52,7 +55,12 @@ class FavoritesController extends Notifier<FavoritesState> {
       return;
     }
     try {
-      await ref.read(favoriteRepositoryProvider).addFavorite(toolId);
+      final added =
+          await ref.read(favoriteRepositoryProvider).addFavorite(toolId);
+      ref.read(analyticsProvider).logEvent(
+            AnalyticsEvents.toolFavorited,
+            toolSlug: added.tool?.slug,
+          );
     } on ApiException catch (e) {
       if (e.code != 'ALREADY_FAVORITED') rethrow;
     }

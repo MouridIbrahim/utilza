@@ -1,17 +1,28 @@
+// Public catalogue home: gradient header, categories, featured grid.
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../../../app/theme_mode.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/models/models.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/offline_banner.dart';
+import '../../../design/app_colors.dart';
+import '../../../design/app_tokens.dart';
+import '../../../design/widgets/app_search_bar.dart';
+import '../../../design/widgets/category_tile.dart';
+import '../../../design/widgets/empty_state.dart';
+import '../../../design/widgets/skeleton_loader.dart';
+import '../../../design/widgets/tool_card_3d.dart';
 import '../../auth/presentation/auth_providers.dart';
 import '../../categories/presentation/category_providers.dart';
 import 'catalogue_providers.dart';
 
-/// Public catalogue home: categories + paginated tools.
+/// Public catalogue home: gradient header, categories, featured 2-col grid.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -48,200 +59,305 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final tools = ref.watch(toolsControllerProvider);
     final categories = ref.watch(categoriesProvider);
-    final authed = ref.watch(
-      authControllerProvider.select((s) => s.isAuthenticated),
-    );
+    final auth = ref.watch(authControllerProvider);
+    final c = AppColorScheme.of(context);
+    final reduced = MediaQuery.disableAnimationsOf(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Utilza'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => context.push(AppRoutes.search),
-          ),
-          IconButton(
-            icon: Icon(authed ? Icons.account_circle : Icons.login),
-            onPressed: () => context.push(
-              authed ? AppRoutes.profile : AppRoutes.login,
-            ),
-          ),
-        ],
-      ),
-      drawer: _HomeDrawer(authed: authed),
       body: RefreshIndicator(
         onRefresh: () =>
             ref.read(toolsControllerProvider.notifier).refresh(),
-        child: ListView(
+        child: CustomScrollView(
           controller: _scroll,
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text('Categories', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            _CategoriesRow(categories: categories),
-            const SizedBox(height: 16),
-            Text('Tools', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            if (tools.isLoading)
-              const AppLoading(message: 'Loading tools…')
-            else if (tools.errorMessage != null && tools.items.isEmpty)
-              AppErrorView(
-                message: _friendly(tools.errorMessage!),
-                onRetry: () => ref
-                    .read(toolsControllerProvider.notifier)
-                    .refresh(),
-              )
-            else if (tools.items.isEmpty)
-              const AppEmpty(message: 'No tools available.')
-            else ...[
-              for (final tool in tools.items)
-                Card(
-                  child: ListTile(
-                    leading: tool.icon?.isNotEmpty == true
-                        ? Text(tool.icon!,
-                            style: const TextStyle(fontSize: 24))
-                        : const Icon(Icons.build),
-                    title: Text(tool.name),
-                    subtitle: Text(
-                      tool.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: tool.isFrontend
-                        ? const Chip(label: Text('Local'))
-                        : null,
-                    onTap: () => context.push(
-                      AppRoutes.toolWith(tool.slug),
-                      extra: tool,
+          slivers: [
+                  SliverAppBar(
+                    automaticallyImplyLeading: false,
+                    floating: true,
+                    snap: true,
+                    expandedHeight: 252,
+                    toolbarHeight: 0,
+                    collapsedHeight: 0,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    flexibleSpace: FlexibleSpaceBar(
+                      collapseMode: CollapseMode.pin,
+                      background: _GradientHeader(
+                        authed: auth.isAuthenticated,
+                        name: auth.user?.name,
+                      ),
                     ),
                   ),
+                  const SliverToBoxAdapter(child: OfflineBanner()),
+                  SliverToBoxAdapter(
+                    child: _CategoriesSection(categories: categories),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Text('Featured tools',
+                              style: AppBrand.title
+                                  .copyWith(color: c.text)),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: () =>
+                                context.push(AppRoutes.search),
+                            child: const Text('View all'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (tools.isLoading)
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          mainAxisExtent: 190,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (_, _) => SkeletonCard(),
+                          childCount: 6,
+                        ),
+                      ),
+                    )
+                  else if (tools.errorMessage != null && tools.items.isEmpty)
+                    SliverToBoxAdapter(
+                      child: AppErrorView(
+                        message: tools.errorMessage!,
+                        onRetry: () => ref
+                            .read(toolsControllerProvider.notifier)
+                            .refresh(),
+                      ),
+                    )
+                  else if (tools.items.isEmpty)
+                    const SliverToBoxAdapter(
+                      child: EmptyState(
+                        title: 'No tools available.',
+                        detail: 'Pull down to try again.',
+                        icon: Icons.build_outlined,
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          mainAxisExtent: 205,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, i) {
+                            final tool = tools.items[i];
+                            final card = ToolCard3D(
+                              tool: tool,
+                              heroTag: 'tool-${tool.id}',
+                              onTap: () => context.push(
+                                AppRoutes.toolWith(tool.slug),
+                                extra: tool,
+                              ),
+                            );
+                            if (reduced || i >= 10) return card;
+                            return card
+                                .animate()
+                                .fadeIn(delay: (i * 40).ms, duration: 220.ms)
+                                .slideY(
+                                    begin: 0.12,
+                                    end: 0,
+                                    delay: (i * 40).ms,
+                                    duration: 220.ms);
+                          },
+                          childCount: tools.items.length,
+                        ),
+                      ),
+                    ),
+                  if (tools.isLoadingMore)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child:
+                            Center(child: CircularProgressIndicator()),
+                      ),
+                    )
+                  else if (tools.hasMore && tools.items.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Center(
+                        child: TextButton(
+                          onPressed: () => ref
+                              .read(toolsControllerProvider.notifier)
+                              .loadMore(),
+                          child: const Text('Load more'),
+                        ),
+                      ),
+                    ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+class _GradientHeader extends ConsumerWidget {
+  const _GradientHeader({required this.authed, this.name});
+  final bool authed;
+  final String? name;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final greeting = authed && (name?.isNotEmpty == true)
+        ? 'Welcome back, $name'
+        : 'Everyday tools, all in one place.';
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primaryTop, AppColors.primaryBottom],
+        ),
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(28),
+        ),
+        boxShadow: AppShape.tightShadow(dark: dark),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      greeting,
+                      style: AppBrand.display.copyWith(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: dark
+                        ? 'Switch to light mode'
+                        : 'Switch to dark mode',
+                    icon: Icon(
+                      dark
+                          ? Icons.light_mode_outlined
+                          : Icons.dark_mode_outlined,
+                      color: Colors.white,
+                    ),
+                    onPressed: () => ref
+                        .read(themeModeControllerProvider.notifier)
+                        .toggleLightDark(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                authed
+                    ? 'Find your next tool below.'
+                    : 'No account needed to run tools.',
+                style: AppBrand.body.copyWith(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontSize: 14,
                 ),
-              if (tools.isLoadingMore)
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (tools.hasMore)
-                TextButton(
-                  onPressed: () => ref
-                      .read(toolsControllerProvider.notifier)
-                      .loadMore(),
-                  child: const Text('Load more'),
-                ),
+              ),
+              const SizedBox(height: 12),
+              AppSearchBar(
+                readOnly: true,
+                hintText: 'Search tools…',
+                onTap: () => context.push(AppRoutes.search),
+              ),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
-
-  String _friendly(String raw) {
-    // Controller stores e.toString(); map ApiException when possible.
-    return raw;
-  }
 }
 
-class _CategoriesRow extends ConsumerWidget {
-  const _CategoriesRow({required this.categories});
+class _CategoriesSection extends ConsumerWidget {
+  const _CategoriesSection({required this.categories});
   final AsyncValue<List<Category>> categories;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return categories.when(
-      loading: () => const SizedBox(
-        height: 40,
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) => TextButton(
-        onPressed: () => ref.invalidate(categoriesProvider),
-        child: Text(
-          e is ApiException ? ErrorMapper.userMessage(e) : 'Failed to load.',
+    final c = AppColorScheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text('Categories',
+              style: AppBrand.title.copyWith(color: c.text)),
         ),
-      ),
-      data: (list) {
-        if (list.isEmpty) {
-          return const AppEmpty(message: 'No categories yet.');
-        }
-        return Wrap(
-          spacing: 8,
-          children: [
-            for (final c in list)
-              ActionChip(
-                label: Text(c.name),
-                onPressed: () => context.push(
-                  AppRoutes.categoryWith(c.slug),
+        SizedBox(
+          height: 118,
+          child: categories.when(
+            loading: () => ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: 4,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (_, _) => const SizedBox(
+                width: 140,
+                child: SkeletonLoader(height: 110, borderRadius: 16),
+              ),
+            ),
+            error: (e, _) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextButton(
+                onPressed: () => ref.invalidate(categoriesProvider),
+                child: Text(
+                  e is ApiException
+                      ? ErrorMapper.userMessage(e)
+                      : 'Failed to load.',
                 ),
               ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _HomeDrawer extends ConsumerWidget {
-  const _HomeDrawer({required this.authed});
-  final bool authed;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Drawer(
-      child: ListView(
-        children: [
-          const DrawerHeader(child: Text('Utilza')),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text('Home'),
-            onTap: () => context.go(AppRoutes.home),
-          ),
-          ListTile(
-            leading: const Icon(Icons.search),
-            title: const Text('Search'),
-            onTap: () => context.push(AppRoutes.search),
-          ),
-          ListTile(
-            leading: const Icon(Icons.favorite),
-            title: const Text('Favorites'),
-            onTap: () => context.push(AppRoutes.favorites),
-          ),
-          ListTile(
-            leading: const Icon(Icons.history),
-            title: const Text('History'),
-            onTap: () => context.push(AppRoutes.history),
-          ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Profile'),
-            onTap: () => context.push(AppRoutes.profile),
-          ),
-          ListTile(
-            leading: const Icon(Icons.card_membership),
-            title: const Text('Subscription'),
-            onTap: () => context.push(AppRoutes.subscription),
-          ),
-          const Divider(),
-          if (authed)
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () async {
-                await ref.read(authControllerProvider.notifier).logout();
-                if (context.mounted) context.go(AppRoutes.home);
-              },
-            )
-          else ...[
-            ListTile(
-              leading: const Icon(Icons.login),
-              title: const Text('Login'),
-              onTap: () => context.push(AppRoutes.login),
             ),
-            ListTile(
-              leading: const Icon(Icons.person_add),
-              title: const Text('Register'),
-              onTap: () => context.push(AppRoutes.register),
-            ),
-          ],
-        ],
-      ),
+            data: (list) {
+              if (list.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('No categories yet.'),
+                );
+              }
+              return ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: list.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (_, i) {
+                  final cat = list[i];
+                  return SizedBox(
+                    width: 140,
+                    child: CategoryTile(
+                      slug: cat.slug,
+                      label: cat.name,
+                      onTap: () => context.push(
+                        AppRoutes.categoryWith(cat.slug),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 4),
+      ],
     );
   }
 }

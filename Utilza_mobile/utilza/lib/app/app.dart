@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/presentation/auth_providers.dart';
 import 'router.dart';
 import 'theme.dart';
+import 'theme_mode.dart';
 
 /// Root widget: theme + single GoRouter refreshed on auth changes.
 class UtilzaApp extends ConsumerStatefulWidget {
@@ -52,6 +53,7 @@ class _UtilzaAppState extends ConsumerState<UtilzaApp> {
       title: 'Utilza',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      themeMode: ref.watch(themeModeControllerProvider),
       routerConfig: _router,
       debugShowCheckedModeBanner: false,
     );

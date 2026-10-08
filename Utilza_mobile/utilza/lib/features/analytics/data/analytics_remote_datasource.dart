@@ -2,10 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../core/constants/analytics_events.dart';
 import '../../../core/network/api_client.dart';
 
-/// Minimal analytics writer used by catalogue (full strategy in Phase 11).
-/// Public endpoint, fire-and-forget, never sends PII.
+/// Allowlisted analytics writer. Public endpoint, fire-and-forget,
+/// never sends PII. Unknown events are dropped, never transmitted.
 class AnalyticsRemoteDataSource {
   AnalyticsRemoteDataSource(this._client);
   final ApiClient _client;
@@ -22,6 +23,7 @@ class AnalyticsRemoteDataSource {
   }
 
   Future<void> logEvent(String event, {String? toolSlug}) async {
+    if (!AnalyticsEvents.values.contains(event)) return;
     try {
       await _client.post<Map>(
         '/analytics',

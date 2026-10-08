@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:utilza/core/errors/api_exception.dart';
 import 'package:utilza/core/models/models.dart';
 import 'package:utilza/core/network/api_client.dart';
 import 'package:utilza/features/catalogue/data/catalogue_remote_datasource.dart';
@@ -232,8 +233,7 @@ void main() {
     });
   });
 
-  group('ToolsController pagination', () {
-    ProviderContainer containerWith(Map<int, Pagination<Tool>> pages) {
+  group('ToolsController pagination', () {    ProviderContainer containerWith(Map<int, Pagination<Tool>> pages) {
       return ProviderContainer(
         overrides: [
           catalogueRepositoryProvider.overrideWithValue(
@@ -282,5 +282,38 @@ void main() {
       expect(c.read(toolsControllerProvider).category, isNull);
       expect(c.read(toolsControllerProvider).search, 'merge');
     });
+
+    test('failures store friendly messages, never raw exceptions', () async {
+      final c = ProviderContainer(
+        overrides: [
+          catalogueRepositoryProvider.overrideWithValue(
+            _FailingCatalogue(),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      await c.read(toolsControllerProvider.notifier).loadFirst();
+      final message = c.read(toolsControllerProvider).errorMessage!;
+      expect(message, isNot(contains('ApiException')));
+      expect(message, contains('internet'));
+    });
   });
+}
+
+class _FailingCatalogue implements CatalogueRepository {
+  @override
+  Future<Pagination<Tool>> getTools({
+    String? category,
+    String? search,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    throw const ApiException(
+      code: 'NETWORK_ERROR',
+      message: 'No internet connection. Please check and retry.',
+    );
+  }
+
+  @override
+  Future<Tool?> findBySlug(String slug) async => null;
 }

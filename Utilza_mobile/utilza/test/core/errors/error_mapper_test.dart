@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:utilza/core/errors/api_exception.dart';
 import 'package:utilza/core/errors/error_mapper.dart';
 
 void main() {
@@ -51,8 +52,7 @@ void main() {
       expect(e.code, 'TIMEOUT');
     });
 
-    test('fromDio preserves backend 409 ALREADY_FAVORITED', () {
-      final e = ErrorMapper.fromDio(
+    test('fromDio preserves backend 409 ALREADY_FAVORITED', () {      final e = ErrorMapper.fromDio(
         DioException(
           requestOptions: RequestOptions(path: '/favorites'),
           type: DioExceptionType.badResponse,
@@ -68,6 +68,25 @@ void main() {
       );
       expect(e.code, 'ALREADY_FAVORITED');
       expect(e.statusCode, 409);
+    });
+  });
+
+  group('displayMessage (never raw exception strings)', () {
+    test('maps ApiException to friendly text', () {
+      const e = ApiException(
+        code: 'NETWORK_ERROR',
+        message: 'No internet connection. Please check and retry.',
+      );
+      final msg = ErrorMapper.displayMessage(e);
+      expect(msg, isNot(contains('ApiException')));
+      expect(msg, contains('internet'));
+    });
+
+    test('falls back for non-API failures', () {
+      expect(
+        ErrorMapper.displayMessage(Exception('boom')),
+        'Something went wrong. Please try again.',
+      );
     });
   });
 }

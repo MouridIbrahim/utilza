@@ -4,6 +4,7 @@ import { downloadBlob, formatBytes, isDownloadResult } from '../../../services/t
 import { trackEvent } from '../../../services/analytics-service.js';
 import { useToastStore } from '../../../components/feedback/ToastRegion.jsx';
 import { Button } from '../../../components/ui/Button.jsx';
+import { Button3D } from '../../../components/ui/Button3D.jsx';
 
 export function DownloadResult({ data, toolSlug }) {
   const toast = useToastStore((s) => s.push);
@@ -52,9 +53,9 @@ export function DownloadResult({ data, toolSlug }) {
           Download before expiry: {new Date(data.expiresAt).toLocaleString()}
         </p>
       )}
-      <Button onClick={onDownload} loading={downloading} className="w-full sm:w-auto">
+      <Button3D onClick={onDownload} loading={downloading} className="w-full sm:w-auto">
         <Download size={16} aria-hidden="true" /> Download result
-      </Button>
+      </Button3D>
     </div>
   );
 }

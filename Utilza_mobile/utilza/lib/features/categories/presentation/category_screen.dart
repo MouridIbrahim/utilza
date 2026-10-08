@@ -7,6 +7,7 @@ import '../../../core/errors/api_exception.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/models/models.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/offline_banner.dart';
 import '../../catalogue/presentation/catalogue_providers.dart';
 
 /// Category detail + tools in that exact category slug.
@@ -89,18 +90,23 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.slug)),
-      body: RefreshIndicator(
-        onRefresh: _loadFirst,
-        child: NotificationListener<ScrollNotification>(
-          onNotification: (n) {
-            if (n.metrics.pixels >= n.metrics.maxScrollExtent - 300) {
-              _loadMore();
-            }
-            return false;
-          },
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadFirst,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (n) {
+                  if (n.metrics.pixels >=
+                      n.metrics.maxScrollExtent - 300) {
+                    _loadMore();
+                  }
+                  return false;
+                },
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
               if (_loading)
                 const AppLoading(message: 'Loading category…')
               else if (_error != null && _items.isEmpty)
@@ -136,9 +142,12 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   ),
               ],
-            ],
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

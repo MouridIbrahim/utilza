@@ -180,7 +180,7 @@ class ApiClient {
         ),
       );
     } on DioException catch (e) {
-      throw ErrorMapper.fromDio(e);
+      throw ErrorMapper.fromDownloadError(e);
     }
   }
 

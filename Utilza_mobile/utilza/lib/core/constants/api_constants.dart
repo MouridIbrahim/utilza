@@ -1,9 +1,13 @@
-// API configuration. Never hardcode a production URL.
-// Provide via: flutter run --dart-define=API_BASE_URL=https://<host>/api/v1
+// API configuration. Override with:
+// flutter run --dart-define=API_BASE_URL=https://<host>/api/v1
+// Default = this PC's LAN address so a physical Android phone on the
+// same Wi-Fi reaches the local backend with a plain `flutter run`.
+// (`localhost` would mean the phone itself.) If the Wi-Fi reconnects
+// and the PC gets a new IP, update the default below.
 class ApiConstants {
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:3000/api/v1',
+    defaultValue: 'http://198.18.0.1:4000/api/v1',
   );
 
   static const Duration connectTimeout = Duration(seconds: 15);

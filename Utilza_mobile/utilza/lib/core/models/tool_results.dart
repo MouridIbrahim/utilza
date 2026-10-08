@@ -278,7 +278,7 @@ class UrlStatusResult {
     required this.ok,
     this.status,
     this.finalUrl,
-    this.redirects,
+    this.redirects = const [],
     this.contentType,
     this.size,
   });
@@ -287,17 +287,27 @@ class UrlStatusResult {
   final bool ok;
   final int? status;
   final String? finalUrl;
-  final int? redirects;
+
+  /// Redirect chain. The backend returns a list of URLs.
+  final List<String> redirects;
   final String? contentType;
   final int? size;
 
+  int get redirectCount => redirects.length;
+
   factory UrlStatusResult.fromJson(Map<String, dynamic> json) {
+    final raw = json['redirects'];
     return UrlStatusResult(
       url: stringOf(json, 'url'),
       ok: boolOf(json, 'ok'),
       status: nullableIntOf(json, 'status'),
       finalUrl: nullableStringOf(json, 'finalUrl'),
-      redirects: nullableIntOf(json, 'redirects'),
+      redirects: raw is List
+          ? [for (final e in raw) e.toString()]
+          : switch (nullableIntOf(json, 'redirects')) {
+              int n => List.filled(n, ''),
+              null => const [],
+            },
       contentType: nullableStringOf(json, 'contentType'),
       size: nullableIntOf(json, 'size'),
     );

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Breadcrumbs } from '../components/layout/Breadcrumbs.jsx';
 import { Seo } from '../components/seo/Seo.jsx';
 import { Card } from '../components/ui/Card.jsx';
-import { Button } from '../components/ui/Button.jsx';
+import { Button3D } from '../components/ui/Button3D.jsx';
 import { ErrorPanel } from '../components/feedback/ErrorPanel.jsx';
 import { Skeleton, CardSkeletonGrid } from '../components/feedback/Skeleton.jsx';
 import { useToolQuery, useToolsQuery } from '../hooks/useCatalogQueries.js';
@@ -229,9 +229,9 @@ function WorkspaceBody({ tool }) {
                 ))}
               </ul>
             )}
-            <Button onClick={onRun} loading={execution.isPending} disabled={inCooldown} className="w-full sm:w-auto">
+            <Button3D onClick={onRun} loading={execution.isPending} disabled={inCooldown} className="w-full sm:w-auto">
               {execution.isPending ? 'Processing…' : 'Run'}
-            </Button>
+            </Button3D>
           </div>
         </Card>
 
